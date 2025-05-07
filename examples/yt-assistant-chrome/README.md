@@ -5,11 +5,13 @@ A powerful Chrome extension that combines AI chat with your personal knowledge b
 ## Development
 
 1. Install dependencies:
+
    ```bash
    npm install
    ```
 
 2. Start development mode:
+
    ```bash
    npm run watch
    ```

@@ -1,8 +1,14 @@
-import { useState } from 'react';
-import { createMem0, getMemories } from '@mem0/vercel-ai-provider';
-import { LanguageModelV1Prompt, streamText } from 'ai';
-import { Message, Memory } from '@/types';
-import { WELCOME_MESSAGE, INVALID_CONFIG_MESSAGE, ERROR_MESSAGE, AI_MODELS, Provider } from '@/constants/messages';
+import { useState } from "react";
+import { createMem0, getMemories } from "@mem0/vercel-ai-provider";
+import { LanguageModelV1Prompt, streamText } from "ai";
+import { Message, Memory } from "@/types";
+import {
+  WELCOME_MESSAGE,
+  INVALID_CONFIG_MESSAGE,
+  ERROR_MESSAGE,
+  AI_MODELS,
+  Provider,
+} from "@/constants/messages";
 
 interface UseChatProps {
   user: string;
@@ -15,7 +21,10 @@ interface UseChatReturn {
   messages: Message[];
   memories: Memory[];
   thinking: boolean;
-  sendMessage: (content: string, fileData?: { type: string; data: string | Buffer }) => Promise<void>;
+  sendMessage: (
+    content: string,
+    fileData?: { type: string; data: string | Buffer },
+  ) => Promise<void>;
 }
 
 interface MemoryResponse {
@@ -25,17 +34,22 @@ interface MemoryResponse {
   categories: string[];
 }
 
-type MessageContent = 
-  | { type: 'text'; text: string }
-  | { type: 'image'; image: string }
-  | { type: 'file'; mimeType: string; data: Buffer };
+type MessageContent =
+  | { type: "text"; text: string }
+  | { type: "image"; image: string }
+  | { type: "file"; mimeType: string; data: Buffer };
 
 interface PromptMessage {
   role: string;
   content: MessageContent[];
 }
 
-export const useChat = ({ user, mem0ApiKey, openaiApiKey, provider }: UseChatProps): UseChatReturn => {
+export const useChat = ({
+  user,
+  mem0ApiKey,
+  openaiApiKey,
+  provider,
+}: UseChatProps): UseChatReturn => {
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [memories, setMemories] = useState<Memory[]>([]);
   const [thinking, setThinking] = useState(false);
@@ -61,27 +75,27 @@ export const useChat = ({ user, mem0ApiKey, openaiApiKey, provider }: UseChatPro
       }));
       setMemories(newMemories);
     } catch (error) {
-      console.error('Error in getMemories:', error);
+      console.error("Error in getMemories:", error);
     }
   };
 
   const formatMessagesForPrompt = (messages: Message[]): PromptMessage[] => {
     return messages.map((message) => {
       const messageContent: MessageContent[] = [
-        { type: 'text', text: message.content }
+        { type: "text", text: message.content },
       ];
 
       if (message.image) {
         messageContent.push({
-          type: 'image',
+          type: "image",
           image: message.image,
         });
       }
 
       if (message.audio) {
         messageContent.push({
-          type: 'file',
-          mimeType: 'audio/mpeg',
+          type: "file",
+          mimeType: "audio/mpeg",
           data: message.audio as Buffer,
         });
       }
@@ -93,14 +107,17 @@ export const useChat = ({ user, mem0ApiKey, openaiApiKey, provider }: UseChatPro
     });
   };
 
-  const sendMessage = async (content: string, fileData?: { type: string; data: string | Buffer }) => {
+  const sendMessage = async (
+    content: string,
+    fileData?: { type: string; data: string | Buffer },
+  ) => {
     if (!content.trim() && !fileData) return;
 
     if (!user) {
       const newMessage: Message = {
         id: Date.now().toString(),
         content,
-        sender: 'user',
+        sender: "user",
         timestamp: new Date().toLocaleTimeString(),
       };
       setMessages((prev) => [...prev, newMessage, INVALID_CONFIG_MESSAGE]);
@@ -110,16 +127,23 @@ export const useChat = ({ user, mem0ApiKey, openaiApiKey, provider }: UseChatPro
     const userMessage: Message = {
       id: Date.now().toString(),
       content,
-      sender: 'user',
+      sender: "user",
       timestamp: new Date().toLocaleTimeString(),
-      ...(fileData?.type.startsWith('image/') && { image: fileData.data.toString() }),
-      ...(fileData?.type.startsWith('audio/') && { audio: fileData.data as Buffer }),
+      ...(fileData?.type.startsWith("image/") && {
+        image: fileData.data.toString(),
+      }),
+      ...(fileData?.type.startsWith("audio/") && {
+        audio: fileData.data as Buffer,
+      }),
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setThinking(true);
 
-    const messagesForPrompt = formatMessagesForPrompt([...messages, userMessage]);
+    const messagesForPrompt = formatMessagesForPrompt([
+      ...messages,
+      userMessage,
+    ]);
     await updateMemories(messagesForPrompt as LanguageModelV1Prompt);
 
     try {
@@ -133,8 +157,8 @@ export const useChat = ({ user, mem0ApiKey, openaiApiKey, provider }: UseChatPro
       const assistantMessageId = Date.now() + 1;
       const assistantMessage: Message = {
         id: assistantMessageId.toString(),
-        content: '',
-        sender: 'assistant',
+        content: "",
+        sender: "assistant",
         timestamp: new Date().toLocaleTimeString(),
       };
 
@@ -148,12 +172,12 @@ export const useChat = ({ user, mem0ApiKey, openaiApiKey, provider }: UseChatPro
           prev.map((msg) =>
             msg.id === assistantMessageId.toString()
               ? { ...msg, content: assistantMessage.content }
-              : msg
-          )
+              : msg,
+          ),
         );
       }
     } catch (error) {
-      console.error('Error in sendMessage:', error);
+      console.error("Error in sendMessage:", error);
       setMessages((prev) => [...prev, ERROR_MESSAGE]);
     } finally {
       setThinking(false);
@@ -166,4 +190,4 @@ export const useChat = ({ user, mem0ApiKey, openaiApiKey, provider }: UseChatPro
     thinking,
     sendMessage,
   };
-}; 
+};

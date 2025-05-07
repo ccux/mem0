@@ -31,7 +31,7 @@ describe("GROQ Integration Tests", () => {
 
     // Retrieve memories based on previous messages
     const memories = await retrieveMemories(messages, { user_id: userId });
-    
+
     const { text } = await generateText({
       // @ts-ignore
       model: groq("llama3-8b-8192"),
@@ -40,7 +40,7 @@ describe("GROQ Integration Tests", () => {
     });
 
     // Expect text to be a string
-    expect(typeof text).toBe('string');
+    expect(typeof text).toBe("string");
     expect(text.length).toBeGreaterThan(0);
   });
 
@@ -52,10 +52,10 @@ describe("GROQ Integration Tests", () => {
       // @ts-ignore
       model: groq("llama3-8b-8192"),
       prompt: prompt,
-      system: memories
+      system: memories,
     });
 
-    expect(typeof text).toBe('string');
+    expect(typeof text).toBe("string");
     expect(text.length).toBeGreaterThan(0);
   });
 });

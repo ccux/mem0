@@ -28,7 +28,7 @@ interface ThreadListProps {
 
 export const ThreadList: FC<ThreadListProps> = ({ onResetUserId }) => {
   const [open, setOpen] = useState(false);
-  
+
   return (
     <div className="flex-col h-full border-r border-[#e2e8f0] bg-white dark:bg-zinc-900 dark:border-zinc-800 p-3 overflow-y-auto hidden md:flex">
       <ThreadListPrimitive.Root className="flex flex-col justify-between h-full items-stretch gap-1.5">
@@ -79,7 +79,6 @@ export const ThreadList: FC<ThreadListProps> = ({ onResetUserId }) => {
           </div>
           <ThreadListItems />
         </div>
-
       </ThreadListPrimitive.Root>
     </div>
   );

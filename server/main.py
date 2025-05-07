@@ -55,18 +55,18 @@ DEFAULT_CONFIG = {
         }
     },
     "llm": {
-        "provider": "openai",
+        "provider": "gemini",
         "config": {
-            "api_key": OPENAI_API_KEY,
+            "api_key": os.environ.get("GOOGLE_GENERATIVE_AI_API_KEY"),
             "temperature": 0.2,
-            "model": "gpt-4o"
+            "model": "models/gemini-1.5-pro-latest"
         }
     },
     "embedder": {
-        "provider": "openai",
+        "provider": "gemini",
         "config": {
-            "api_key": OPENAI_API_KEY,
-            "model": "text-embedding-3-small"
+            "api_key": os.environ.get("GOOGLE_GENERATIVE_AI_API_KEY"),
+            "model": "models/embedding-001"
         }
     },
     "history_db_path": HISTORY_DB_PATH,

@@ -30,7 +30,7 @@ describe("OPENAI Integration Tests", () => {
 
     // Retrieve memories based on previous messages
     const memories = await retrieveMemories(messages, { user_id: userId });
-    
+
     const { text } = await generateText({
       model: openai("gpt-4-turbo"),
       messages: messages,
@@ -38,7 +38,7 @@ describe("OPENAI Integration Tests", () => {
     });
 
     // Expect text to be a string
-    expect(typeof text).toBe('string');
+    expect(typeof text).toBe("string");
     expect(text.length).toBeGreaterThan(0);
   });
 
@@ -49,10 +49,10 @@ describe("OPENAI Integration Tests", () => {
     const { text } = await generateText({
       model: openai("gpt-4-turbo"),
       prompt: prompt,
-      system: memories
+      system: memories,
     });
 
-    expect(typeof text).toBe('string');
+    expect(typeof text).toBe("string");
     expect(text.length).toBeGreaterThan(0);
   });
 });

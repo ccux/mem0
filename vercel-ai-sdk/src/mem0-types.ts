@@ -7,8 +7,7 @@ import {
   LanguageModelV1Message,
 } from "@ai-sdk/provider";
 
-export type Mem0ChatModelId =
-  | (string & NonNullable<unknown>);
+export type Mem0ChatModelId = string & NonNullable<unknown>;
 
 export interface Mem0ConfigSettings {
   user_id?: string;
@@ -31,11 +30,17 @@ export interface Mem0ConfigSettings {
   enable_graph?: boolean;
 }
 
-export interface Mem0ChatConfig extends Mem0ConfigSettings, Mem0ProviderSettings {}
+export interface Mem0ChatConfig
+  extends Mem0ConfigSettings,
+    Mem0ProviderSettings {}
 
 export interface Mem0Config extends Mem0ConfigSettings {}
-export interface Mem0ChatSettings extends OpenAIChatSettings, AnthropicMessagesSettings, Mem0ConfigSettings {}
+export interface Mem0ChatSettings
+  extends OpenAIChatSettings,
+    AnthropicMessagesSettings,
+    Mem0ConfigSettings {}
 
-export interface Mem0StreamResponse extends Awaited<ReturnType<LanguageModelV1['doStream']>> {
+export interface Mem0StreamResponse
+  extends Awaited<ReturnType<LanguageModelV1["doStream"]>> {
   memories: any;
 }

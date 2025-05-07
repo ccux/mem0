@@ -11,11 +11,14 @@ export interface Mem0Provider extends ProviderV1 {
   (modelId: Mem0ChatModelId, settings?: Mem0ChatSettings): LanguageModelV1;
 
   chat(modelId: Mem0ChatModelId, settings?: Mem0ChatSettings): LanguageModelV1;
-  completion(modelId: Mem0ChatModelId, settings?: Mem0ChatSettings): LanguageModelV1;
+  completion(
+    modelId: Mem0ChatModelId,
+    settings?: Mem0ChatSettings,
+  ): LanguageModelV1;
 
   languageModel(
     modelId: Mem0ChatModelId,
-    settings?: Mem0ChatSettings
+    settings?: Mem0ChatSettings,
   ): LanguageModelV1;
 }
 
@@ -52,7 +55,7 @@ export interface Mem0ProviderSettings
 export function createMem0(
   options: Mem0ProviderSettings = {
     provider: "openai",
-  }
+  },
 ): Mem0Provider {
   const baseURL =
     withoutTrailingSlash(options.baseURL) ?? "http://api.openai.com";
@@ -62,7 +65,7 @@ export function createMem0(
 
   const createGenericModel = (
     modelId: Mem0ChatModelId,
-    settings: Mem0ChatSettings = {}
+    settings: Mem0ChatSettings = {},
   ) =>
     new Mem0GenericLanguageModel(
       modelId,
@@ -77,12 +80,12 @@ export function createMem0(
         apiKey: options.apiKey,
         mem0Config: options.mem0Config,
       },
-      options.config
+      options.config,
     );
 
   const createCompletionModel = (
     modelId: Mem0ChatModelId,
-    settings: Mem0ChatSettings = {}
+    settings: Mem0ChatSettings = {},
   ) =>
     new Mem0GenericLanguageModel(
       modelId,
@@ -98,12 +101,12 @@ export function createMem0(
         mem0Config: options.mem0Config,
         modelType: "completion",
       },
-      options.config
+      options.config,
     );
 
   const createChatModel = (
     modelId: Mem0ChatModelId,
-    settings: Mem0ChatSettings = {}
+    settings: Mem0ChatSettings = {},
   ) =>
     new Mem0GenericLanguageModel(
       modelId,
@@ -119,16 +122,16 @@ export function createMem0(
         mem0Config: options.mem0Config,
         modelType: "completion",
       },
-      options.config
+      options.config,
     );
 
   const provider = function (
     modelId: Mem0ChatModelId,
-    settings: Mem0ChatSettings = {}
+    settings: Mem0ChatSettings = {},
   ) {
     if (new.target) {
       throw new Error(
-        "The Mem0 model function cannot be called with the new keyword."
+        "The Mem0 model function cannot be called with the new keyword.",
       );
     }
 

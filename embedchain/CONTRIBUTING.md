@@ -16,7 +16,6 @@ To make a contribution, follow these steps:
 
 For more details about pull requests, please read [GitHub's guides](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request).
 
-
 ### 📦 Package manager
 
 We use `poetry` as our package manager. You can install poetry by following the instructions [here](https://python-poetry.org/docs/#installation).
@@ -65,9 +64,7 @@ We use `pytest` to test our code. You can run the tests by running the following
 poetry run pytest
 ```
 
-
 Several packages have been removed from Poetry to make the package lighter. Therefore, it is recommended to run `make install_all` to install the remaining packages and ensure all tests pass.
-
 
 Make sure that all tests pass before submitting a pull request.
 

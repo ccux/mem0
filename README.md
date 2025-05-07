@@ -45,7 +45,8 @@
   <strong>⚡ +26% Accuracy vs. OpenAI Memory • 🚀 91% Faster • 💰 90% Fewer Tokens</strong>
 </p>
 
-##  🔥 Research Highlights
+## 🔥 Research Highlights
+
 - **+26% Accuracy** over OpenAI Memory on the LOCOMO benchmark
 - **91% Faster Responses** than full-context, ensuring low-latency at scale
 - **90% Lower Token Usage** than full-context, cutting costs without compromise
@@ -58,10 +59,12 @@
 ### Key Features & Use Cases
 
 **Core Capabilities:**
+
 - **Multi-Level Memory**: Seamlessly retains User, Session, and Agent state with adaptive personalization
 - **Developer-Friendly**: Intuitive API, cross-platform SDKs, and a fully managed service option
 
 **Applications:**
+
 - **AI Assistants**: Consistent, context-rich conversations
 - **Customer Support**: Recall past tickets and user history for tailored help
 - **Healthcare**: Track patient preferences and history for personalized care
@@ -87,6 +90,7 @@ pip install mem0ai
 ```
 
 Install sdk via npm:
+
 ```bash
 npm install mem0ai
 ```

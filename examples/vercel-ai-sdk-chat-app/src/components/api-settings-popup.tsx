@@ -1,23 +1,49 @@
-import { Dispatch, SetStateAction, useContext, useEffect, useState } from 'react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import GlobalContext from '@/contexts/GlobalContext'
-import { Provider } from '@/constants/messages'
-export default function ApiSettingsPopup(props: { isOpen: boolean, setIsOpen: Dispatch<SetStateAction<boolean>> }) {
-  const {isOpen, setIsOpen} = props
-  const [mem0ApiKey, setMem0ApiKey] = useState('')
-  const [providerApiKey, setProviderApiKey] = useState('')
-  const [provider, setProvider] = useState('OpenAI')
-  const { selectorHandler, selectedOpenAIKey, selectedMem0Key, selectedProvider } = useContext(GlobalContext);
+import {
+  Dispatch,
+  SetStateAction,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import GlobalContext from "@/contexts/GlobalContext";
+import { Provider } from "@/constants/messages";
+export default function ApiSettingsPopup(props: {
+  isOpen: boolean;
+  setIsOpen: Dispatch<SetStateAction<boolean>>;
+}) {
+  const { isOpen, setIsOpen } = props;
+  const [mem0ApiKey, setMem0ApiKey] = useState("");
+  const [providerApiKey, setProviderApiKey] = useState("");
+  const [provider, setProvider] = useState("OpenAI");
+  const {
+    selectorHandler,
+    selectedOpenAIKey,
+    selectedMem0Key,
+    selectedProvider,
+  } = useContext(GlobalContext);
 
   const handleSave = () => {
     // Here you would typically save the settings to your backend or local storage
     selectorHandler(mem0ApiKey, providerApiKey, provider as Provider);
-    setIsOpen(false)
-  }
+    setIsOpen(false);
+  };
 
   useEffect(() => {
     if (selectedOpenAIKey) {
@@ -30,8 +56,6 @@ export default function ApiSettingsPopup(props: { isOpen: boolean, setIsOpen: Di
       setProvider(selectedProvider);
     }
   }, [selectedOpenAIKey, selectedMem0Key, selectedProvider]);
-  
-
 
   return (
     <>
@@ -71,21 +95,37 @@ export default function ApiSettingsPopup(props: { isOpen: boolean, setIsOpen: Di
                 <SelectTrigger className="col-span-3 rounded-3xl">
                   <SelectValue placeholder="Select provider" />
                 </SelectTrigger>
-                <SelectContent className='rounded-3xl'>
-                  <SelectItem value="openai" className='rounded-3xl'>OpenAI</SelectItem>
-                  <SelectItem value="anthropic" className='rounded-3xl'>Anthropic</SelectItem>
-                  <SelectItem value="cohere" className='rounded-3xl'>Cohere</SelectItem>
-                  <SelectItem value="groq" className='rounded-3xl'>Groq</SelectItem>
+                <SelectContent className="rounded-3xl">
+                  <SelectItem value="openai" className="rounded-3xl">
+                    OpenAI
+                  </SelectItem>
+                  <SelectItem value="anthropic" className="rounded-3xl">
+                    Anthropic
+                  </SelectItem>
+                  <SelectItem value="cohere" className="rounded-3xl">
+                    Cohere
+                  </SelectItem>
+                  <SelectItem value="groq" className="rounded-3xl">
+                    Groq
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button className='rounded-3xl' variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
-            <Button className='rounded-3xl' onClick={handleSave}>Save</Button>
+            <Button
+              className="rounded-3xl"
+              variant="outline"
+              onClick={() => setIsOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button className="rounded-3xl" onClick={handleSave}>
+              Save
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
-  )
+  );
 }

@@ -60,7 +60,7 @@ export const Thread: FC<ThreadProps> = ({
   setSidebarOpen,
   onResetUserId,
   isDarkMode,
-  toggleDarkMode
+  toggleDarkMode,
 }) => {
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const composerInputRef = useRef<HTMLTextAreaElement>(null);
@@ -84,7 +84,7 @@ export const Thread: FC<ThreadProps> = ({
       <div
         className={cn(
           "fixed inset-y-0 left-0 z-40 w-[75%] bg-white shadow-lg rounded-r-lg dark:bg-zinc-900 transform transition-transform duration-300 ease-in-out md:hidden",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          sidebarOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <div className="h-full flex flex-col">
@@ -147,13 +147,13 @@ export const Thread: FC<ThreadProps> = ({
               <ThreadListPrimitive.Root className="flex flex-col items-stretch gap-1.5 h-full dark:text-white">
                 <ThreadListPrimitive.New asChild>
                   <div className="flex items-center flex-col gap-2 w-full">
-                  <Button
-                    className="hover:bg-zinc-600 w-full dark:hover:bg-zinc-800 dark:data-[active]:bg-zinc-800 flex items-center justify-start gap-1 rounded-lg px-2.5 py-2 text-start bg-[#4f46e5] text-white dark:bg-[#6366f1]"
-                    variant="default"
-                  >
-                    <PlusIcon className="w-4 h-4" />
-                    New Thread
-                  </Button>
+                    <Button
+                      className="hover:bg-zinc-600 w-full dark:hover:bg-zinc-800 dark:data-[active]:bg-zinc-800 flex items-center justify-start gap-1 rounded-lg px-2.5 py-2 text-start bg-[#4f46e5] text-white dark:bg-[#6366f1]"
+                      variant="default"
+                    >
+                      <PlusIcon className="w-4 h-4" />
+                      New Thread
+                    </Button>
                     <Button
                       className="hover:bg-zinc-600 w-full dark:hover:bg-zinc-700 dark:data-[active]:bg-zinc-800 flex items-center justify-start gap-1 rounded-lg px-2.5 py-2 text-start bg-zinc-800 text-white"
                       onClick={toggleDarkMode}
@@ -161,7 +161,7 @@ export const Thread: FC<ThreadProps> = ({
                     >
                       {isDarkMode ? (
                         <div className="flex items-center gap-2">
-                          <Sun className="w-6 h-6" /> 
+                          <Sun className="w-6 h-6" />
                           <span>Toggle Light Mode</span>
                         </div>
                       ) : (
@@ -171,7 +171,11 @@ export const Thread: FC<ThreadProps> = ({
                         </div>
                       )}
                     </Button>
-                    <GithubButton url="https://github.com/mem0ai/mem0/tree/main/examples" className="w-full rounded-lg h-9 pl-2 text-sm font-semibold bg-zinc-800 dark:border-zinc-800 dark:text-white text-white hover:bg-zinc-900" text="View on Github" />
+                    <GithubButton
+                      url="https://github.com/mem0ai/mem0/tree/main/examples"
+                      className="w-full rounded-lg h-9 pl-2 text-sm font-semibold bg-zinc-800 dark:border-zinc-800 dark:text-white text-white hover:bg-zinc-900"
+                      text="View on Github"
+                    />
 
                     <Link
                       href={"https://app.mem0.ai/"}
@@ -279,7 +283,9 @@ interface ThreadWelcomeSuggestionsProps {
   composerInputRef: React.RefObject<HTMLTextAreaElement>;
 }
 
-const ThreadWelcomeSuggestions: FC<ThreadWelcomeSuggestionsProps> = ({ composerInputRef }) => {
+const ThreadWelcomeSuggestions: FC<ThreadWelcomeSuggestionsProps> = ({
+  composerInputRef,
+}) => {
   return (
     <div className="mt-3 flex flex-col md:flex-row w-full md:items-stretch justify-center gap-4 dark:text-white items-center">
       <ThreadPrimitive.Suggestion
@@ -497,7 +503,7 @@ const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({
       hideWhenSingleBranch
       className={cn(
         "text-[#475569] dark:text-zinc-300 inline-flex items-center text-xs",
-        className
+        className,
       )}
       {...rest}
     >

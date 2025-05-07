@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { createContext } from 'react';
-import { Message, Memory, FileInfo } from '@/types';
-import { useAuth } from '@/hooks/useAuth';
-import { useChat } from '@/hooks/useChat';
-import { useFileHandler } from '@/hooks/useFileHandler';
-import { Provider } from '@/constants/messages';
+import { createContext } from "react";
+import { Message, Memory, FileInfo } from "@/types";
+import { useAuth } from "@/hooks/useAuth";
+import { useChat } from "@/hooks/useChat";
+import { useFileHandler } from "@/hooks/useFileHandler";
+import { Provider } from "@/constants/messages";
 
 interface GlobalContextType {
   selectedUser: string;
@@ -48,12 +48,7 @@ const GlobalState = (props: { children: React.ReactNode }) => {
     clearFile,
   } = useFileHandler();
 
-  const {
-    messages,
-    memories,
-    thinking,
-    sendMessage,
-  } = useChat({
+  const { messages, memories, thinking, sendMessage } = useChat({
     user: selectedUser,
     mem0ApiKey: selectedMem0Key,
     openaiApiKey: selectedOpenAIKey,

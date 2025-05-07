@@ -1,12 +1,23 @@
 import { cn } from "@/lib/utils";
 
-const GithubButton = ({ url, className, text }: { url: string, className?: string, text?: string }) => {
+const GithubButton = ({
+  url,
+  className,
+  text,
+}: {
+  url: string;
+  className?: string;
+  text?: string;
+}) => {
   return (
     <a
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className={cn("flex items-center bg-black text-white rounded-full shadow-lg hover:bg-gray-800 transition border border-gray-700", className)}
+      className={cn(
+        "flex items-center bg-black text-white rounded-full shadow-lg hover:bg-gray-800 transition border border-gray-700",
+        className,
+      )}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"

@@ -27,6 +27,7 @@ The LOCOMO dataset used in our experiments can be downloaded from our Google Dri
 The dataset contains conversational data specifically designed to test memory recall and understanding across various question types and complexity levels.
 
 Place the dataset files in the `dataset/` directory:
+
 - `locomo10.json`: Original dataset
 - `locomo10_rag.json`: Dataset formatted for RAG experiments
 
@@ -108,15 +109,15 @@ python run_experiments.py --technique_type [mem0|rag|langmem] [additional parame
 
 #### Command-line Parameters:
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `--technique_type` | Memory technique to use (mem0, rag, langmem) | mem0 |
-| `--method` | Method to use (add, search) | add |
-| `--chunk_size` | Chunk size for processing | 1000 |
-| `--top_k` | Number of top memories to retrieve | 30 |
-| `--filter_memories` | Whether to filter memories | False |
-| `--is_graph` | Whether to use graph-based search | False |
-| `--num_chunks` | Number of chunks to process for RAG | 1 |
+| Parameter           | Description                                  | Default |
+| ------------------- | -------------------------------------------- | ------- |
+| `--technique_type`  | Memory technique to use (mem0, rag, langmem) | mem0    |
+| `--method`          | Method to use (add, search)                  | add     |
+| `--chunk_size`      | Chunk size for processing                    | 1000    |
+| `--top_k`           | Number of top memories to retrieve           | 30      |
+| `--filter_memories` | Whether to filter memories                   | False   |
+| `--is_graph`        | Whether to use graph-based search            | False   |
+| `--num_chunks`      | Number of chunks to process for RAG          | 1       |
 
 ### 📊 Evaluation
 
@@ -127,6 +128,7 @@ python evals.py --input_file [path_to_results] --output_file [output_path]
 ```
 
 This script:
+
 1. Processes each question-answer pair
 2. Calculates BLEU and F1 scores automatically
 3. Uses an LLM judge to evaluate answer correctness
@@ -141,16 +143,18 @@ python generate_scores.py
 ```
 
 This script:
+
 1. Loads the evaluation metrics data
 2. Calculates mean scores for each category (BLEU, F1, LLM)
 3. Reports the number of questions per category
 4. Calculates overall mean scores across all categories
 
 Example output:
+
 ```
 Mean Scores Per Category:
          bleu_score  f1_score  llm_score  count
-category                                       
+category
 1           0.xxxx    0.xxxx     0.xxxx     xx
 2           0.xxxx    0.xxxx     0.xxxx     xx
 3           0.xxxx    0.xxxx     0.xxxx     xx
@@ -195,4 +199,3 @@ If you use this code or dataset in your research, please cite our paper:
 - [Saket Aryan](https://github.com/whysosaket)
 - [Taranjeet Singh](https://github.com/taranjeet)
 - [Deshraj Yadav](https://github.com/deshraj)
-

@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { FileInfo } from '@/types';
-import { convertToBase64, getFileBuffer } from '@/utils/fileUtils';
+import { useState } from "react";
+import { FileInfo } from "@/types";
+import { convertToBase64, getFileBuffer } from "@/utils/fileUtils";
 
 interface UseFileHandlerReturn {
   selectedFile: FileInfo | null;
@@ -18,11 +18,11 @@ export const useFileHandler = (): UseFileHandlerReturn => {
 
   const handleFile = async (file: File) => {
     setFile(file);
-    
-    if (file.type.startsWith('image/')) {
+
+    if (file.type.startsWith("image/")) {
       const base64Data = await convertToBase64(file);
       setFileData(base64Data);
-    } else if (file.type.startsWith('audio/')) {
+    } else if (file.type.startsWith("audio/")) {
       const bufferData = await getFileBuffer(file);
       setFileData(bufferData);
     }
@@ -42,4 +42,4 @@ export const useFileHandler = (): UseFileHandlerReturn => {
     handleFile,
     clearFile,
   };
-}; 
+};

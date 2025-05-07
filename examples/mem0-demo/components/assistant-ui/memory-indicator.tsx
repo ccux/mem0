@@ -77,10 +77,10 @@ export default function MemoryIndicator({ memories }: MemoryIndicatorProps) {
                       memory.event === "GET"
                         ? "secondary"
                         : memory.event === "ADD"
-                        ? "outline"
-                        : memory.event === "UPDATE"
-                        ? "default"
-                        : "destructive"
+                          ? "outline"
+                          : memory.event === "UPDATE"
+                            ? "default"
+                            : "destructive"
                     }
                     className="mt-0.5 text-xs shrink-0 rounded-full"
                   >

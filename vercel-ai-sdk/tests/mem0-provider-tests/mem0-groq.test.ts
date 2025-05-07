@@ -17,8 +17,8 @@ describe("GROQ MEM0 Tests", () => {
       provider: "groq",
       apiKey: process.env.GROQ_API_KEY,
       mem0Config: {
-        user_id: userId
-      }
+        user_id: userId,
+      },
     });
   });
 
@@ -33,15 +33,14 @@ describe("GROQ MEM0 Tests", () => {
       },
     ];
 
-    
     const { text } = await generateText({
       // @ts-ignore
       model: mem0("llama3-8b-8192"),
-      messages: messages
+      messages: messages,
     });
 
     // Expect text to be a string
-    expect(typeof text).toBe('string');
+    expect(typeof text).toBe("string");
     expect(text.length).toBeGreaterThan(0);
   });
 
@@ -51,10 +50,10 @@ describe("GROQ MEM0 Tests", () => {
     const { text } = await generateText({
       // @ts-ignore
       model: mem0("llama3-8b-8192"),
-      prompt: prompt
+      prompt: prompt,
     });
 
-    expect(typeof text).toBe('string');
+    expect(typeof text).toBe("string");
     expect(text.length).toBeGreaterThan(0);
   });
 });
