@@ -1,6 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { ChevronRight, X, RefreshCcw, Settings } from "lucide-react";
-import { Dispatch, SetStateAction, useContext, useEffect, useState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import GlobalContext from "../contexts/GlobalContext";
 import { Input } from "./ui/input";
 
@@ -8,7 +14,12 @@ const Header = (props: {
   setIsSettingsOpen: Dispatch<SetStateAction<boolean>>;
 }) => {
   const { setIsSettingsOpen } = props;
-  const { selectUserHandler, clearUserHandler, selectedUser, clearConfiguration } = useContext(GlobalContext);
+  const {
+    selectUserHandler,
+    clearUserHandler,
+    selectedUser,
+    clearConfiguration,
+  } = useContext(GlobalContext);
   const [userId, setUserId] = useState<string>("");
 
   const handleSelectUser = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -26,7 +37,7 @@ const Header = (props: {
 
   // New function to handle key down events
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault(); // Prevent form submission if it's in a form
       handleSubmit();
     }
@@ -46,17 +57,27 @@ const Header = (props: {
         </div>
         <div className="flex items-center space-x-2 text-sm">
           <div className="flex">
-            <Input 
-              placeholder="UserId" 
-              className="w-full rounded-3xl pr-6 pl-4" 
+            <Input
+              placeholder="UserId"
+              className="w-full rounded-3xl pr-6 pl-4"
               value={userId}
-              onChange={handleSelectUser} 
+              onChange={handleSelectUser}
               onKeyDown={handleKeyDown} // Attach the key down handler here
             />
-            <Button variant="ghost" size="icon" onClick={handleClearUser} className="relative hover:bg-transparent hover:text-neutral-400 right-8">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleClearUser}
+              className="relative hover:bg-transparent hover:text-neutral-400 right-8"
+            >
               <X className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={handleSubmit} className="relative right-6">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleSubmit}
+              className="relative right-6"
+            >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

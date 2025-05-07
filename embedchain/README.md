@@ -30,7 +30,7 @@
 
 ## What is Embedchain?
 
-Embedchain is an Open Source Framework for personalizing LLM responses. It makes it easy to create and deploy personalized AI apps. At its core, Embedchain follows the design principle of being *"Conventional but Configurable"* to serve both software engineers and machine learning engineers.
+Embedchain is an Open Source Framework for personalizing LLM responses. It makes it easy to create and deploy personalized AI apps. At its core, Embedchain follows the design principle of being _"Conventional but Configurable"_ to serve both software engineers and machine learning engineers.
 
 Embedchain streamlines the creation of personalized LLM applications, offering a seamless process for managing various types of unstructured data. It efficiently segments data into manageable chunks, generates relevant embeddings, and stores them in a vector database for optimized retrieval. With a suite of diverse APIs, it enables users to extract contextual information, find precise answers, or engage in interactive chat conversations, all tailored to their own data.
 
@@ -77,6 +77,7 @@ You can also try it in your browser with Google Colab:
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/17ON1LPonnXAtLaZEebnOktstB_1cJJmh?usp=sharing)
 
 ## 📖 Documentation
+
 Comprehensive guides and API documentation are available to help you get the most out of Embedchain:
 
 - [Introduction](https://docs.embedchain.ai/get-started/introduction#what-is-embedchain)
@@ -86,9 +87,9 @@ Comprehensive guides and API documentation are available to help you get the mos
 
 ## 🔗 Join the Community
 
-* Connect with fellow developers by joining our [Slack Community](https://embedchain.ai/slack) or [Discord Community](https://embedchain.ai/discord).
+- Connect with fellow developers by joining our [Slack Community](https://embedchain.ai/slack) or [Discord Community](https://embedchain.ai/discord).
 
-* Dive into [GitHub Discussions](https://github.com/embedchain/embedchain/discussions), ask questions, or share your experiences.
+- Dive into [GitHub Discussions](https://github.com/embedchain/embedchain/discussions), ask questions, or share your experiences.
 
 ## 🤝 Schedule a 1-on-1 Session
 

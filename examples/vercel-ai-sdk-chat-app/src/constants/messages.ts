@@ -2,14 +2,16 @@ import { Message } from "@/types";
 
 export const WELCOME_MESSAGE: Message = {
   id: "1",
-  content: "👋 Hi there! I'm your personal assistant. How can I help you today? 😊",
+  content:
+    "👋 Hi there! I'm your personal assistant. How can I help you today? 😊",
   sender: "assistant",
   timestamp: new Date().toLocaleTimeString(),
 };
 
 export const INVALID_CONFIG_MESSAGE: Message = {
   id: "2",
-  content: "Invalid configuration. Please check your API keys, and add a user and try again.",
+  content:
+    "Invalid configuration. Please check your API keys, and add a user and try again.",
   sender: "assistant",
   timestamp: new Date().toLocaleTimeString(),
 };
@@ -28,4 +30,4 @@ export const AI_MODELS = {
   groq: "gemma2-9b-it",
 } as const;
 
-export type Provider = keyof typeof AI_MODELS; 
+export type Provider = keyof typeof AI_MODELS;

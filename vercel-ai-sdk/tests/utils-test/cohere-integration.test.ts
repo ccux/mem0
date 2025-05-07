@@ -30,7 +30,7 @@ describe("COHERE Integration Tests", () => {
 
     // Retrieve memories based on previous messages
     const memories = await retrieveMemories(messages, { user_id: userId });
-    
+
     const { text } = await generateText({
       // @ts-ignore
       model: cohere("command-r-plus"),
@@ -39,7 +39,7 @@ describe("COHERE Integration Tests", () => {
     });
 
     // Expect text to be a string
-    expect(typeof text).toBe('string');
+    expect(typeof text).toBe("string");
     expect(text.length).toBeGreaterThan(0);
   });
 
@@ -51,10 +51,10 @@ describe("COHERE Integration Tests", () => {
       // @ts-ignore
       model: cohere("command-r-plus"),
       prompt: prompt,
-      system: memories
+      system: memories,
     });
 
-    expect(typeof text).toBe('string');
+    expect(typeof text).toBe("string");
     expect(text.length).toBeGreaterThan(0);
   });
 });

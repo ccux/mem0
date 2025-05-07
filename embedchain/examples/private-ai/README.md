@@ -14,13 +14,13 @@ pip install -r requirements.txt
 
 ## How to use
 
-* Now open privateai.py file and change the line `app.add` to point to your directory or data source.
-* If you want to add any other data type, you can browse the supported data types [here](https://docs.embedchain.ai/components/data-sources/overview)
+- Now open privateai.py file and change the line `app.add` to point to your directory or data source.
+- If you want to add any other data type, you can browse the supported data types [here](https://docs.embedchain.ai/components/data-sources/overview)
 
-* Now simply run the file by
+- Now simply run the file by
 
 ```bash
 python privateai.py
 ```
 
-* Now you can enter and ask any questions from your data.
+- Now you can enter and ask any questions from your data.

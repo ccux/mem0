@@ -53,7 +53,7 @@ const useMemories = (): Memory[] => {
               id: m.id,
               memory: m.data.memory,
               score: 1,
-            })
+            }),
           );
         } else if (a.type === "mem0-get") {
           return a.memories.map((m) => ({
@@ -65,7 +65,7 @@ const useMemories = (): Memory[] => {
         }
         throw new Error("Unexpected annotation: " + JSON.stringify(a));
       }) ?? [],
-    [annotations]
+    [annotations],
   );
 };
 

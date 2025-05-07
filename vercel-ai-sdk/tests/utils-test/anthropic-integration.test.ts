@@ -31,16 +31,16 @@ describe("ANTHROPIC Integration Tests", () => {
 
     // Retrieve memories based on previous messages
     const memories = await retrieveMemories(messages, { user_id: userId });
-    
+
     const { text } = await generateText({
       // @ts-ignore
       model: anthropic("claude-3-haiku-20240307"),
       messages: messages,
-      system: memories.length > 0 ? memories : "No Memories Found"
+      system: memories.length > 0 ? memories : "No Memories Found",
     });
 
     // Expect text to be a string
-    expect(typeof text).toBe('string');
+    expect(typeof text).toBe("string");
     expect(text.length).toBeGreaterThan(0);
   });
 
@@ -52,10 +52,10 @@ describe("ANTHROPIC Integration Tests", () => {
       // @ts-ignore
       model: anthropic("claude-3-haiku-20240307"),
       prompt: prompt,
-      system: memories.length > 0 ? memories : "No Memories Found"
+      system: memories.length > 0 ? memories : "No Memories Found",
     });
 
-    expect(typeof text).toBe('string');
+    expect(typeof text).toBe("string");
     expect(text.length).toBeGreaterThan(0);
   });
 });

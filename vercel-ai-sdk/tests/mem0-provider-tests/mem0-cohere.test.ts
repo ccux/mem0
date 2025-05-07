@@ -16,8 +16,8 @@ describe("COHERE MEM0 Tests", () => {
       provider: "cohere",
       apiKey: process.env.COHERE_API_KEY,
       mem0Config: {
-        user_id: userId
-      }
+        user_id: userId,
+      },
     });
   });
 
@@ -32,15 +32,14 @@ describe("COHERE MEM0 Tests", () => {
       },
     ];
 
-    
     const { text } = await generateText({
       // @ts-ignore
       model: mem0("command-r-plus"),
-      messages: messages
+      messages: messages,
     });
 
     // Expect text to be a string
-    expect(typeof text).toBe('string');
+    expect(typeof text).toBe("string");
     expect(text.length).toBeGreaterThan(0);
   });
 
@@ -50,10 +49,10 @@ describe("COHERE MEM0 Tests", () => {
     const { text } = await generateText({
       // @ts-ignore
       model: mem0("command-r-plus"),
-      prompt: prompt
+      prompt: prompt,
     });
 
-    expect(typeof text).toBe('string');
+    expect(typeof text).toBe("string");
     expect(text.length).toBeGreaterThan(0);
   });
 });

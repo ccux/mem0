@@ -6,7 +6,6 @@ import Messages from "../components/messages";
 import InputArea from "../components/input-area";
 import ChevronToggle from "../components/chevron-toggle";
 
-
 export default function Home() {
   const [isMemoriesExpanded, setIsMemoriesExpanded] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);

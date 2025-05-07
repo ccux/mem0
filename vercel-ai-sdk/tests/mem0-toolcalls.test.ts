@@ -11,10 +11,15 @@ describe("Tool Calls Tests", () => {
   jest.setTimeout(30000);
 
   beforeEach(async () => {
-    await addMemories([{
-      role: "user",
-      content: [{ type: "text", text: "I live in Mumbai" }],
-    }], { user_id: userId });
+    await addMemories(
+      [
+        {
+          role: "user",
+          content: [{ type: "text", text: "I live in Mumbai" }],
+        },
+      ],
+      { user_id: userId },
+    );
   });
 
   it("should Execute a Tool Call Using OpenAI", async () => {

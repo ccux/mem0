@@ -52,7 +52,7 @@ Assistant: You can mix your hobbies by planning a day that includes all of them.
 
 
 
-`
+`;
 
 const retrieveMemories = (memories: any) => {
   if (memories.length === 0) return "";
@@ -70,21 +70,27 @@ const retrieveMemories = (memories: any) => {
 export async function POST(req: Request) {
   const { messages, system, tools, userId } = await req.json();
 
-  const memories = await getMemories(messages, { user_id: userId, rerank: true, threshold: 0.1 });
+  const memories = await getMemories(messages, {
+    user_id: userId,
+    rerank: true,
+    threshold: 0.1,
+  });
   const mem0Instructions = retrieveMemories(memories);
 
   const result = streamText({
     model: openai("gpt-4o"),
     messages,
     // forward system prompt and tools from the frontend
-    system: [SYSTEM_HIGHLIGHT_PROMPT, system, mem0Instructions].filter(Boolean).join("\n"),
+    system: [SYSTEM_HIGHLIGHT_PROMPT, system, mem0Instructions]
+      .filter(Boolean)
+      .join("\n"),
     tools: Object.fromEntries(
       Object.entries<{ parameters: unknown }>(tools).map(([name, tool]) => [
         name,
         {
           parameters: jsonSchema(tool.parameters!),
         },
-      ])
+      ]),
     ),
   });
 

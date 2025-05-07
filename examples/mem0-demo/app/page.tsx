@@ -1,5 +1,5 @@
-import { Assistant } from "@/app/assistant"
+import { Assistant } from "@/app/assistant";
 
 export default function Page() {
-  return <Assistant />
+  return <Assistant />;
 }

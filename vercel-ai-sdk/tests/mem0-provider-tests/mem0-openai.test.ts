@@ -15,8 +15,8 @@ describe("OPENAI MEM0 Tests", () => {
       provider: "openai",
       apiKey: process.env.OPENAI_API_KEY,
       mem0Config: {
-        user_id: userId
-      }
+        user_id: userId,
+      },
     });
   });
 
@@ -30,14 +30,14 @@ describe("OPENAI MEM0 Tests", () => {
         ],
       },
     ];
-    
+
     const { text } = await generateText({
       model: mem0("gpt-4-turbo"),
-      messages: messages
+      messages: messages,
     });
 
     // Expect text to be a string
-    expect(typeof text).toBe('string');
+    expect(typeof text).toBe("string");
     expect(text.length).toBeGreaterThan(0);
   });
 
@@ -46,10 +46,10 @@ describe("OPENAI MEM0 Tests", () => {
 
     const { text } = await generateText({
       model: mem0("gpt-4-turbo"),
-      prompt: prompt
+      prompt: prompt,
     });
 
-    expect(typeof text).toBe('string');
+    expect(typeof text).toBe("string");
     expect(text.length).toBeGreaterThan(0);
   });
 });
