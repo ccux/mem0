@@ -48,6 +48,8 @@ class PGVector(VectorStoreBase):
             diskann (bool, optional): Use DiskANN for faster search
             hnsw (bool, optional): Use HNSW for faster search
         """
+        logger.warning(f"PGVector Store __init__: received embedding_model_dims = {embedding_model_dims}, type = {type(embedding_model_dims)}")
+
         self.collection_name = collection_name
         self.use_diskann = diskann
         self.use_hnsw = hnsw
@@ -58,28 +60,29 @@ class PGVector(VectorStoreBase):
 
         collections = self.list_cols()
         if collection_name not in collections:
-            self.create_col(embedding_model_dims)
+            self.create_col(self.embedding_model_dims)
 
-    def create_col(self, embedding_model_dims):
+    def create_col(self, embedding_model_dims_arg):
         """
         Create a new collection (table in PostgreSQL).
         Will also initialize vector search index if specified.
 
         Args:
-            embedding_model_dims (int): Dimension of the embedding vector.
+            embedding_model_dims_arg (int): Dimension of the embedding vector.
         """
+        logger.warning(f"PGVector create_col: using embedding_model_dims = {embedding_model_dims_arg}")
         self.cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
         self.cur.execute(
             f"""
             CREATE TABLE IF NOT EXISTS {self.collection_name} (
                 id UUID PRIMARY KEY,
-                vector vector({embedding_model_dims}),
+                vector vector({embedding_model_dims_arg}),
                 payload JSONB
             );
         """
         )
 
-        if self.use_diskann and embedding_model_dims < 2000:
+        if self.use_diskann and embedding_model_dims_arg < 2000:
             # Check if vectorscale extension is installed
             self.cur.execute("SELECT * FROM pg_extension WHERE extname = 'vectorscale'")
             if self.cur.fetchone():
@@ -233,11 +236,11 @@ class PGVector(VectorStoreBase):
         """
         self.cur.execute(
             f"""
-            SELECT 
-                table_name, 
+            SELECT
+                table_name,
                 (SELECT COUNT(*) FROM {self.collection_name}) as row_count,
                 (SELECT pg_size_pretty(pg_total_relation_size('{self.collection_name}'))) as total_size
-            FROM information_schema.tables 
+            FROM information_schema.tables
             WHERE table_schema = 'public' AND table_name = %s
         """,
             (self.collection_name,),
@@ -278,17 +281,17 @@ class PGVector(VectorStoreBase):
         results = self.cur.fetchall()
         return [[OutputData(id=str(r[0]), score=None, payload=r[2]) for r in results]]
 
+    def reset(self):
+        """Reset the index by deleting and recreating it."""
+        logger.warning(f"Resetting PGVector collection {self.collection_name} using dims: {self.embedding_model_dims}")
+        self.delete_col()
+        self.create_col(self.embedding_model_dims)
+
     def __del__(self):
         """
         Close the database connection when the object is deleted.
         """
-        if hasattr(self, "cur"):
+        if hasattr(self, "cur") and self.cur and not self.cur.closed:
             self.cur.close()
-        if hasattr(self, "conn"):
+        if hasattr(self, "conn") and self.conn and not self.conn.closed:
             self.conn.close()
-            
-    def reset(self):
-        """Reset the index by deleting and recreating it."""
-        logger.warning(f"Resetting index {self.collection_name}...")
-        self.delete_col()
-        self.create_col(self.embedding_model_dims)
