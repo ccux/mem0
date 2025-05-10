@@ -1,10 +1,12 @@
 import importlib
 from typing import Optional
+import logging
 
 from mem0.configs.embeddings.base import BaseEmbedderConfig
 from mem0.configs.llms.base import BaseLlmConfig
 from mem0.embeddings.mock import MockEmbeddings
 
+logger = logging.getLogger(__name__)
 
 def load_class(class_type):
     module_path, class_name = class_type.rsplit(".", 1)
@@ -94,13 +96,16 @@ class VectorStoreFactory:
         if class_type:
             if not isinstance(config, dict):
                 config = config.model_dump()
+
+            logger.warning(f"VectorStoreFactory: Instantiating {class_type} with config: {config}")
+
             vector_store_instance = load_class(class_type)
             return vector_store_instance(**config)
         else:
             raise ValueError(f"Unsupported VectorStore provider: {provider_name}")
-        
+
     @classmethod
     def reset(cls, instance):
         instance.reset()
         return instance
-        
+

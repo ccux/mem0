@@ -44,6 +44,7 @@ DEFAULT_CONFIG = {
             "user": POSTGRES_USER,
             "password": POSTGRES_PASSWORD,
             "collection_name": POSTGRES_COLLECTION_NAME,
+            "embedding_model_dims": 768,
         }
     },
     "graph_store": {
@@ -101,6 +102,10 @@ class SearchRequest(BaseModel):
     run_id: Optional[str] = None
     agent_id: Optional[str] = None
     filters: Optional[Dict[str, Any]] = None
+
+
+class MemoryUpdateData(BaseModel):
+    content: str = Field(..., description="The new content for the memory.")
 
 
 @app.post("/configure", summary="Configure Mem0")
@@ -167,12 +172,12 @@ def search_memories(search_req: SearchRequest):
 
 
 @app.put("/memories/{memory_id}", summary="Update a memory")
-def update_memory(memory_id: str, updated_memory: Dict[str, Any]):
-    """Update an existing memory."""
+def update_memory_endpoint(memory_id: str, update_data: MemoryUpdateData):
+    """Update an existing memory's content."""
     try:
-        return MEMORY_INSTANCE.update(memory_id=memory_id, data=updated_memory)
+        return MEMORY_INSTANCE.update(memory_id=memory_id, data=update_data.content)
     except Exception as e:
-        logging.exception("Error in update_memory:")
+        logging.exception("Error in update_memory_endpoint:")
         raise HTTPException(status_code=500, detail=str(e))
 
 
