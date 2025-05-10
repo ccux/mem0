@@ -16,7 +16,7 @@ if not api_key:
 
 genai.configure(api_key=api_key)
 
-# Default configuration for mem0
+# Configuration for mem0
 config = {
     "llm": {
         "provider": "gemini",
@@ -29,16 +29,12 @@ config = {
     "embedder": {
         "provider": "gemini",
         "config": {
-            "model": "models/text-embedding-004", # Produces 768 dimensions
+            "model": "gemini-embedding-exp-03-07",
         }
     },
-    "vector_store": {                 # ADDED THIS SECTION
-        "provider": "pgvector",       # Specify pgvector
+    "vector_store": {
+        "provider": "pgvector",
         "config": {
-            "embedding_model_dims": 768 # Explicitly set to 768
-            # dbname, user, password, host, port are expected to be picked up
-            # from environment variables by mem0's PGVector store if not specified here.
-            # collection_name will default to 'memories' if not specified, which is fine.
         }
     }
 }
