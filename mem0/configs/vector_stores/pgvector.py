@@ -6,11 +6,11 @@ from pydantic import BaseModel, Field, model_validator
 class PGVectorConfig(BaseModel):
     dbname: str = Field("postgres", description="Default name for the database")
     collection_name: str = Field("mem0", description="Default name for the collection")
-    embedding_model_dims: Optional[int] = Field(1536, description="Dimensions of the embedding model")
+    embedding_model_dims: Optional[int] = Field(768, description="Dimensions of the embedding model")
     user: Optional[str] = Field(None, description="Database user")
     password: Optional[str] = Field(None, description="Database password")
     host: Optional[str] = Field(None, description="Database host. Default is localhost")
-    port: Optional[int] = Field(None, description="Database port. Default is 1536")
+    port: Optional[int] = Field(5432, description="Database port. Default is 5432")
     diskann: Optional[bool] = Field(True, description="Use diskann for approximate nearest neighbors search")
     hnsw: Optional[bool] = Field(False, description="Use hnsw for faster search")
 
@@ -18,10 +18,11 @@ class PGVectorConfig(BaseModel):
     def check_auth_and_connection(cls, values):
         user, password = values.get("user"), values.get("password")
         host, port = values.get("host"), values.get("port")
-        if not user and not password:
-            raise ValueError("Both 'user' and 'password' must be provided.")
-        if not host and not port:
-            raise ValueError("Both 'host' and 'port' must be provided.")
+        # Allow these to be None if they will be picked from env vars by PGVector store itself
+        # if not user and not password:
+        #     raise ValueError("Both 'user' and 'password' must be provided.")
+        # if not host and not port:
+        #     raise ValueError("Both 'host' and 'port' must be provided.")
         return values
 
     @model_validator(mode="before")
