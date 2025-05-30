@@ -423,7 +423,7 @@ export class MemoryGraph {
           -[r:${relationship}]->
           (m {name: $dest_name, user_id: $user_id})
           DELETE r
-          RETURN 
+          RETURN
               n.name AS source,
               m.name AS target,
               type(r) AS relationship
@@ -485,7 +485,7 @@ export class MemoryGraph {
                 destination.created = timestamp(),
                 destination.embedding = $destination_embedding
             MERGE (source)-[r:${relationship}]->(destination)
-            ON CREATE SET 
+            ON CREATE SET
                 r.created = timestamp()
             RETURN source.name AS source, type(r) AS relationship, destination.name AS target
           `;
@@ -508,7 +508,7 @@ export class MemoryGraph {
                 source.created = timestamp(),
                 source.embedding = $source_embedding
             MERGE (source)-[r:${relationship}]->(destination)
-            ON CREATE SET 
+            ON CREATE SET
                 r.created = timestamp()
             RETURN source.name AS source, type(r) AS relationship, destination.name AS target
           `;
@@ -529,7 +529,7 @@ export class MemoryGraph {
             MATCH (destination)
             WHERE elementId(destination) = $destination_id
             MERGE (source)-[r:${relationship}]->(destination)
-            ON CREATE SET 
+            ON CREATE SET
                 r.created_at = timestamp(),
                 r.updated_at = timestamp()
             RETURN source.name AS source, type(r) AS relationship, destination.name AS target
@@ -575,9 +575,15 @@ export class MemoryGraph {
   private _removeSpacesFromEntities(entityList: any[]) {
     return entityList.map((item) => ({
       ...item,
-      source: item.source.toLowerCase().replace(/ /g, "_"),
-      relationship: item.relationship.toLowerCase().replace(/ /g, "_"),
-      destination: item.destination.toLowerCase().replace(/ /g, "_"),
+      source: item.source.toLowerCase().replace(/ /g, "_").replace(/-/g, "_"),
+      relationship: item.relationship
+        .toLowerCase()
+        .replace(/ /g, "_")
+        .replace(/-/g, "_"),
+      destination: item.destination
+        .toLowerCase()
+        .replace(/ /g, "_")
+        .replace(/-/g, "_"),
     }));
   }
 
@@ -590,7 +596,7 @@ export class MemoryGraph {
     try {
       const cypher = `
         MATCH (source_candidate)
-        WHERE source_candidate.embedding IS NOT NULL 
+        WHERE source_candidate.embedding IS NOT NULL
         AND source_candidate.user_id = $user_id
 
         WITH source_candidate,
@@ -636,7 +642,7 @@ export class MemoryGraph {
     try {
       const cypher = `
         MATCH (destination_candidate)
-        WHERE destination_candidate.embedding IS NOT NULL 
+        WHERE destination_candidate.embedding IS NOT NULL
         AND destination_candidate.user_id = $user_id
 
         WITH destination_candidate,

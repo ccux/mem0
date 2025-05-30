@@ -234,10 +234,10 @@ class MemoryGraph:
             WITH n, round(2 * vector.similarity.cosine(n.embedding, $n_embedding) - 1, 4) AS similarity // denormalize for backward compatibility
             WHERE similarity >= $threshold
             CALL (n) {
-                MATCH (n)-[r]->(m) 
+                MATCH (n)-[r]->(m)
                 RETURN n.name AS source, elementId(n) AS source_id, type(r) AS relationship, elementId(r) AS relation_id, m.name AS destination, elementId(m) AS destination_id
                 UNION
-                MATCH (m)-[r]->(n) 
+                MATCH (m)-[r]->(n)
                 RETURN m.name AS source, elementId(m) AS source_id, type(r) AS relationship, elementId(r) AS relation_id, n.name AS destination, elementId(n) AS destination_id
             }
             WITH distinct source, source_id, relationship, relation_id, destination, destination_id, similarity //deduplicate
@@ -298,7 +298,7 @@ class MemoryGraph:
             -[r:{relationship}]->
             (m {{name: $dest_name, user_id: $user_id}})
             DELETE r
-            RETURN 
+            RETURN
                 n.name AS source,
                 m.name AS target,
                 type(r) AS relationship
@@ -345,7 +345,7 @@ class MemoryGraph:
                     CALL db.create.setNodeVectorProperty(destination, 'embedding', $destination_embedding)
                     WITH source, destination
                     MERGE (source)-[r:{relationship}]->(destination)
-                    ON CREATE SET 
+                    ON CREATE SET
                         r.created = timestamp()
                     RETURN source.name AS source, type(r) AS relationship, destination.name AS target
                     """
@@ -367,7 +367,7 @@ class MemoryGraph:
                     CALL db.create.setNodeVectorProperty(source, 'embedding', $source_embedding)
                     WITH source, destination
                     MERGE (source)-[r:{relationship}]->(destination)
-                    ON CREATE SET 
+                    ON CREATE SET
                         r.created = timestamp()
                     RETURN source.name AS source, type(r) AS relationship, destination.name AS target
                     """
@@ -385,11 +385,11 @@ class MemoryGraph:
                     MATCH (destination)
                     WHERE elementId(destination) = $destination_id
                     MERGE (source)-[r:{relationship}]->(destination)
-                    ON CREATE SET 
+                    ON CREATE SET
                         r.created_at = timestamp(),
                         r.updated_at = timestamp()
-                    
-                    
+
+
                     RETURN source.name AS source, type(r) AS relationship, destination.name AS target
                     """
                 params = {
@@ -426,15 +426,15 @@ class MemoryGraph:
 
     def _remove_spaces_from_entities(self, entity_list):
         for item in entity_list:
-            item["source"] = item["source"].lower().replace(" ", "_")
-            item["relationship"] = item["relationship"].lower().replace(" ", "_")
-            item["destination"] = item["destination"].lower().replace(" ", "_")
+            item["source"] = item["source"].lower().replace(" ", "_").replace("-", "_")
+            item["relationship"] = item["relationship"].lower().replace(" ", "_").replace("-", "_")
+            item["destination"] = item["destination"].lower().replace(" ", "_").replace("-", "_")
         return entity_list
 
     def _search_source_node(self, source_embedding, user_id, threshold=0.9):
         cypher = """
             MATCH (source_candidate)
-            WHERE source_candidate.embedding IS NOT NULL 
+            WHERE source_candidate.embedding IS NOT NULL
             AND source_candidate.user_id = $user_id
 
             WITH source_candidate,
@@ -460,7 +460,7 @@ class MemoryGraph:
     def _search_destination_node(self, destination_embedding, user_id, threshold=0.9):
         cypher = """
             MATCH (destination_candidate)
-            WHERE destination_candidate.embedding IS NOT NULL 
+            WHERE destination_candidate.embedding IS NOT NULL
             AND destination_candidate.user_id = $user_id
 
             WITH destination_candidate,
