@@ -47,15 +47,14 @@ DEFAULT_CONFIG = {
             "embedding_model_dims": 768,
         }
     },
-    # Temporarily disable graph store due to Neo4j syntax compatibility issues
-    # "graph_store": {
-    #     "provider": "neo4j",
-    #     "config": {
-    #         "url": NEO4J_URI,
-    #         "username": NEO4J_USERNAME,
-    #         "password": NEO4J_PASSWORD
-    #     }
-    # },
+    "graph_store": {
+        "provider": "neo4j",
+        "config": {
+            "url": NEO4J_URI,
+            "username": NEO4J_USERNAME,
+            "password": NEO4J_PASSWORD
+        }
+    },
     "llm": {
         "provider": "gemini",
         "config": {
