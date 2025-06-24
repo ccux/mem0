@@ -60,7 +60,7 @@ DEFAULT_CONFIG = {
         "config": {
             "api_key": os.environ.get("GOOGLE_GENERATIVE_AI_API_KEY"),
             "temperature": 0.2,
-            "model": "models/gemini-1.5-pro-latest"
+            "model": "models/gemini-2.5-flash-preview-05-20"
         }
     },
     "embedder": {
