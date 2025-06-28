@@ -1,9 +1,36 @@
-fastapi==0.115.8
-uvicorn==0.34.0
-pydantic==2.10.4
-# mem0ai>=0.1.48 # Commented out to use local version
-python-dotenv==1.0.1
-google-generativeai>=0.3.0
+# FastAPI and server dependencies
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+python-dotenv>=1.0.0
+
+# HTTP client for API calls
+httpx>=0.25.2
+
+# Database dependencies
 psycopg2-binary>=2.9.0
-langchain-neo4j
-rank-bm25
+sqlalchemy>=2.0.31
+
+# AI service dependencies
+openai>=1.3.0
+google-generativeai>=0.3.0
+
+# Vector store dependencies
+qdrant-client>=1.9.1
+
+# Graph store dependencies (for Neo4j)
+langchain-neo4j>=0.4.0
+neo4j>=5.23.1
+
+# Memory and search dependencies
+rank-bm25>=0.2.2
+
+# Utility dependencies
+posthog>=3.5.0
+pytz>=2024.1
+
+# File handling
+aiofiles>=23.2.1
+
+# Logging
+loguru>=0.7.2
