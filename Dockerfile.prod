@@ -1,5 +1,6 @@
 # Production Dockerfile for Mem0 Service
 # Multi-stage build for security and performance optimization
+# Cache bust: 2025-06-28-v2
 
 # Stage 1: Build stage
 FROM python:3.11-alpine AS builder
@@ -17,8 +18,15 @@ RUN apk add --no-cache \
 # Set working directory
 WORKDIR /app
 
-# Copy requirements from server directory
+# Copy requirements from server directory and verify
 COPY server/requirements.txt ./
+RUN echo "=== VERIFYING REQUIREMENTS.TXT ===" && \
+    cat requirements.txt && \
+    echo "=== LINE COUNT ===" && \
+    wc -l requirements.txt && \
+    echo "=== CHECKING FOR SENTENCE-TRANSFORMERS ===" && \
+    (grep -i sentence requirements.txt || echo "No sentence-transformers found - GOOD!") && \
+    echo "=== END VERIFICATION ==="
 
 # Install Python dependencies with better timeout and build tools
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
@@ -50,6 +58,13 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # Copy application code from server directory
 COPY --chown=appuser:appuser server/ .
 
+# Verify we have the right files
+RUN echo "=== VERIFYING COPIED FILES ===" && \
+    ls -la && \
+    echo "=== MAIN.PY CONTENT ===" && \
+    head -10 main.py && \
+    echo "=== END VERIFICATION ==="
+
 # Create necessary directories
 RUN mkdir -p /app/logs /app/data && \
     chown -R appuser:appuser /app/logs /app/data
@@ -78,6 +93,6 @@ CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001
 
 # Labels for metadata
 LABEL maintainer="Cognition Suite Team"
-LABEL version="1.0.0"
+LABEL version="1.0.1"
 LABEL description="Mem0 Service - Production"
 LABEL org.opencontainers.image.source="https://github.com/cognition-suite/cognition-suite"
