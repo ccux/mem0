@@ -17,6 +17,7 @@ google-generativeai>=0.3.0
 
 # Vector store dependencies
 qdrant-client>=1.9.1
+portalocker>=2.7.0,<3.0.0
 
 # Graph store dependencies (for Neo4j)
 langchain-neo4j>=0.4.0
@@ -27,6 +28,8 @@ rank-bm25>=0.2.2
 
 # Utility dependencies
 posthog>=3.5.0
+python-dateutil>=2.8.0
+six>=1.16.0
 pytz>=2024.1
 
 # File handling
