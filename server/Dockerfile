@@ -1,8 +1,8 @@
-# ✅ Phase 1.1C.1: Multi-Stage Build Implementation
-# Optimized Dockerfile with multi-stage build for better performance and smaller image size
+# Ultra-minimal Mem0 Dockerfile to prevent ENOSPC errors
+# Optimized multi-stage build for minimal disk usage
 
 # =============================================================================
-# Stage 1: Build Dependencies (Builder Stage)
+# Stage 1: Build Dependencies (Ultra-minimal Builder)
 # =============================================================================
 FROM python:3.12-slim as builder
 
@@ -10,35 +10,53 @@ FROM python:3.12-slim as builder
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_WARN_SCRIPT_LOCATION=1
 
-# Install build dependencies
+# Install minimal build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
     g++ \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# Create virtual environment for better dependency isolation
+# Create ultra-minimal virtual environment
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Set working directory for building
 WORKDIR /app/build
 
-# Copy and install mem0 library dependencies first (better caching)
+# Copy and install dependencies with aggressive optimization
 COPY pyproject.toml poetry.lock* README.md LICENSE ./
 COPY ./mem0 ./mem0/
 
-# Install the local mem0 library in the virtual environment
-RUN pip install --no-cache-dir -e .
+# Install mem0 library with minimal footprint
+RUN pip install --no-cache-dir --no-deps -e . && \
+    # Remove build artifacts immediately
+    find /opt/venv -name "*.pyc" -delete && \
+    find /opt/venv -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
 
-# Copy server requirements and install them
+# Install server requirements with cleanup
 COPY server/requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && \
+    # Aggressive cleanup of build artifacts
+    find /opt/venv -name "*.pyc" -delete && \
+    find /opt/venv -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true && \
+    find /opt/venv -name "*.pyo" -delete 2>/dev/null || true && \
+    find /opt/venv -name "*.pyd" -delete 2>/dev/null || true && \
+    find /opt/venv -name "*.so" -exec strip {} \; 2>/dev/null || true && \
+    # Remove test files and documentation
+    find /opt/venv -name "test*" -type d -exec rm -rf {} + 2>/dev/null || true && \
+    find /opt/venv -name "*test*" -type f -delete 2>/dev/null || true && \
+    find /opt/venv -name "*.md" -delete 2>/dev/null || true && \
+    find /opt/venv -name "*.txt" -delete 2>/dev/null || true && \
+    find /opt/venv -name "LICENSE*" -delete 2>/dev/null || true && \
+    find /opt/venv -name "README*" -delete 2>/dev/null || true
 
 # =============================================================================
-# Stage 2: Production Runtime (Final Stage)
+# Stage 2: Ultra-minimal Production Runtime
 # =============================================================================
 FROM python:3.12-slim as production
 
@@ -47,90 +65,51 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PATH="/opt/venv/bin:$PATH"
 
-# Install only runtime dependencies
+# Install only essential runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    && apt-get clean \
+    && rm -rf /tmp/* /var/tmp/*
 
-# Install Doppler CLI (production secret management)
-RUN curl -Ls https://cli.doppler.com/install.sh | sh
+# Install Doppler CLI for production secret management
+RUN curl -Ls https://cli.doppler.com/install.sh | sh && \
+    rm -rf /tmp/* /var/tmp/*
 
-# Copy virtual environment from builder stage
+# Copy optimized virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv
 
-# Create app user for security (non-root)
+# Create app user for security
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 # Set working directory
 WORKDIR /app
 
-# Copy wait-for-it.sh script and make it executable
+# Copy minimal application files
 COPY server/wait-for-it.sh /wait-for-it.sh
 RUN chmod +x /wait-for-it.sh
 
-# Copy application code (only what's needed for runtime)
 COPY server/main.py ./
 COPY server/.env.example ./
 
-# Change ownership to app user
-RUN chown -R appuser:appuser /app
+# Set ownership and clean up
+RUN chown -R appuser:appuser /app && \
+    rm -rf /tmp/* /var/tmp/*
 
-# Switch to non-root user for security
+# Use non-root user for security
 USER appuser
 
 # Expose port
 EXPOSE 8000
 
-# Health check for container orchestration
+# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Production command (no reload for better performance)
+# Production command
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
 
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PATH="/opt/venv/bin:$PATH"
-
-# Install only runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
-
-# Install Doppler CLI (production secret management)
-RUN curl -Ls https://cli.doppler.com/install.sh | sh
-
-# Copy virtual environment from builder stage
-COPY --from=builder /opt/venv /opt/venv
-
-# Create app user for security (non-root)
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-
-# Set working directory
-WORKDIR /app
-
-# Copy wait-for-it.sh script and make it executable
-COPY server/wait-for-it.sh /wait-for-it.sh
-RUN chmod +x /wait-for-it.sh
-
-# Copy application code (only what's needed for runtime)
-COPY server/main.py ./
-COPY server/.env.example ./
-
-# Change ownership to app user
-RUN chown -R appuser:appuser /app
-
-# Switch to non-root user for security
-USER appuser
-
-# Expose port
-EXPOSE 8000
-
-# Health check for container orchestration
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
-
-# Production command (no reload for better performance)
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+# Labels
+LABEL maintainer="Cognition Suite Team"
+LABEL version="1.0.0"
+LABEL description="Mem0 AI Service - Ultra-minimal Production"
