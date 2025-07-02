@@ -1,11 +1,11 @@
-# FastAPI and server dependencies
-fastapi==0.115.8
-uvicorn==0.34.0
-pydantic==2.10.4
+# FastAPI and server dependencies - downgraded for anyio compatibility
+fastapi==0.100.1
+uvicorn[standard]==0.23.2
+pydantic==2.4.2
 python-dotenv==1.0.1
 
-# HTTP client for API calls
-httpx>=0.25.2
+# HTTP client for API calls - compatible with anyio 3.7.1
+httpx==0.24.1
 
 # Database dependencies
 psycopg2-binary>=2.9.0
@@ -13,7 +13,7 @@ sqlalchemy>=2.0.31
 
 # AI service dependencies
 openai>=1.3.0
-google-generativeai>=0.3.0
+google-generativeai>=0.8.0
 
 # Vector store dependencies - CRITICAL for mem0 functionality
 # Install grpc first to avoid conflicts
@@ -28,8 +28,8 @@ langchain-neo4j>=0.4.0
 langchain>=0.1.0
 langchain-core>=0.1.0
 
-# Memory and search dependencies
-mem0ai>=0.1.0
+# Memory and search dependencies - REMOVED mem0ai to avoid conflicts
+# mem0ai>=0.2.0  # Causing anyio conflicts, we'll use our own implementation
 rank-bm25>=0.2.2
 
 # Utility dependencies
@@ -48,3 +48,8 @@ loguru>=0.7.2
 numpy>=1.24.0
 requests>=2.28.0
 pyyaml>=6.0
+
+# Async dependencies - let them resolve naturally for compatibility
+anyio>=4.0.0
+sniffio>=1.3.0
+starlette>=0.27.0
