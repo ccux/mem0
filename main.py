@@ -36,6 +36,15 @@ config = {
     "vector_store": {
         "provider": "pgvector",
         "config": {
+            "dbname": os.getenv("POSTGRES_DB", "cognitionsuite_prod"),
+            "collection_name": os.getenv("POSTGRES_COLLECTION_NAME", "memories"),
+            "embedding_model_dims": 768,  # Gemini embedding dimensions
+            "user": os.getenv("POSTGRES_USER", "cognition"),
+            "password": os.getenv("POSTGRES_PASSWORD", "password"),
+            "host": os.getenv("POSTGRES_HOST", "postgres"),
+            "port": int(os.getenv("POSTGRES_PORT", "5432")),
+            "hnsw": True,  # Use HNSW for better performance
+            "diskann": False  # Disable DiskANN for simplicity
         }
     }
 }
@@ -106,28 +115,6 @@ async def get_all_memories_route(user_id: Optional[str] = None, agent_id: Option
 async def delete_all_user_memories_route(user_id: str):
     result = memory.delete_all(user_id=user_id)
     return {"result": result, "message": f"All memories for user {user_id} deleted."}
-
-@app.get("/health")
-async def health_check():
-    """Health check endpoint for production monitoring"""
-    try:
-        # Basic health check - ensure the service is running
-        return {
-            "status": "ok",
-            "timestamp": datetime.utcnow().isoformat() + "Z",
-            "service": "mem0-service",
-            "version": "1.0.0",
-            "memory_provider": "pgvector",
-            "llm_provider": "gemini"
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "timestamp": datetime.utcnow().isoformat() + "Z",
-            "service": "mem0-service",
-            "error": str(e)
-        }
-
 
 @app.get("/health")
 async def health_check():
