@@ -61,7 +61,7 @@ class PGVector(VectorStoreBase):
         collections = self.list_cols()
         if collection_name not in collections:
             self.create_col(self.embedding_model_dims)
-        
+
         # Create enhanced indexes for advanced querying
         self.create_indexes()
 
@@ -282,7 +282,7 @@ class PGVector(VectorStoreBase):
         self.cur.execute(query, (*filter_params, limit))
 
         results = self.cur.fetchall()
-        return [[OutputData(id=str(r[0]), score=None, payload=r[2]) for r in results]]
+        return [OutputData(id=str(r[0]), score=None, payload=r[2]) for r in results]
 
     def reset(self):
         """Reset the index by deleting and recreating it."""
@@ -358,12 +358,12 @@ class PGVector(VectorStoreBase):
         # Note: This method assumes vectors will be provided by the calling code
         # For now, we'll use the existing search method structure but return empty results
         # since we don't have access to the embedding model here
-        
+
         # In a full implementation, this would:
         # 1. Get embeddings for the query using the embedding model
         # 2. Use the existing search method with those embeddings
         # 3. Apply offset for pagination
-        
+
         # For now, return empty results to avoid errors
         return []
 
@@ -371,13 +371,28 @@ class PGVector(VectorStoreBase):
         """Full-text search using PostgreSQL's text search capabilities"""
         filter_conditions, filter_params = self._build_filter_conditions(filters)
 
-        # Build text search query
+        # Check if we have any records first
+        count_query = f"SELECT COUNT(*) FROM {self.collection_name}"
+        self.cur.execute(count_query)
+        count = self.cur.fetchone()[0]
+
+        if count == 0:
+            # Return empty results if no records exist
+            return []
+
+        # Build text search query with proper WHERE clause handling
+        if filter_conditions:
+            # Add additional filter conditions with AND
+            where_clause = f"WHERE to_tsvector('english', payload->>'memory') @@ plainto_tsquery('english', %s) AND {filter_conditions[7:]}"  # Remove " WHERE " prefix
+        else:
+            # Only use the text search condition
+            where_clause = "WHERE to_tsvector('english', payload->>'memory') @@ plainto_tsquery('english', %s)"
+
         text_query = f"""
             SELECT id, payload,
                    ts_rank(to_tsvector('english', payload->>'memory'), plainto_tsquery('english', %s)) as rank
             FROM {self.collection_name}
-            WHERE to_tsvector('english', payload->>'memory') @@ plainto_tsquery('english', %s)
-            {filter_conditions}
+            {where_clause}
             ORDER BY rank DESC,
                 CASE
                     WHEN payload->'metadata'->>'source' = 'auto-extraction' THEN 1
@@ -509,11 +524,11 @@ class PGVector(VectorStoreBase):
     def bulk_operations(self, operations: List[Dict]) -> List[Dict]:
         """Execute multiple operations in a single transaction"""
         results = []
-        
+
         try:
             for operation in operations:
                 op_type = operation.get('type')
-                
+
                 if op_type == 'insert':
                     result = self.insert(
                         operation['vectors'],
@@ -521,7 +536,7 @@ class PGVector(VectorStoreBase):
                         operation.get('ids')
                     )
                     results.append({'type': 'insert', 'result': result})
-                
+
                 elif op_type == 'update':
                     result = self.update(
                         operation['vector_id'],
@@ -529,20 +544,20 @@ class PGVector(VectorStoreBase):
                         operation.get('payload')
                     )
                     results.append({'type': 'update', 'result': result})
-                
+
                 elif op_type == 'delete':
                     result = self.delete(operation['vector_id'])
                     results.append({'type': 'delete', 'result': result})
-                
+
                 else:
                     results.append({'type': 'error', 'message': f'Unknown operation type: {op_type}'})
-            
+
             self.conn.commit()
-            
+
         except Exception as e:
             self.conn.rollback()
             results.append({'type': 'error', 'message': str(e)})
-        
+
         return results
 
     def search_with_metadata_aggregation(

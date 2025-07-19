@@ -1,11 +1,16 @@
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from mem0 import Memory
 from fastapi import FastAPI
 from pydantic import BaseModel
 import google.generativeai as genai
 from typing import Optional, List, Dict, Any
 from fastapi.middleware.cors import CORSMiddleware
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Use the Doppler-provided key for Gemini
 api_key = os.getenv("GOOGLE_GENERATIVE_AI_API_KEY") or os.getenv("GOOGLE_API_KEY")
@@ -22,7 +27,7 @@ config = {
     "llm": {
         "provider": "gemini",
         "config": {
-            "model": "gemini-1.5-flash-latest",
+            "model": "gemini-2.5-flash",
             "temperature": 0.2,
             "max_tokens": 2000,
         }
@@ -30,24 +35,24 @@ config = {
     "embedder": {
         "provider": "gemini",
         "config": {
-            "model": "gemini-embedding-exp-03-07",
+            "model": "models/gemini-embedding-001",
+            "embedding_dims": 1536,  # Use 1536 dimensions as supported by Gemini
         }
     },
     "vector_store": {
-        "provider": "pgvector",
+        "provider": "qdrant",
         "config": {
-            "dbname": os.getenv("POSTGRES_DB", "cognitionsuite_prod"),
-            "collection_name": os.getenv("POSTGRES_COLLECTION_NAME", "memories"),
-            "embedding_model_dims": 768,  # Gemini embedding dimensions
-            "user": os.getenv("POSTGRES_USER", "cognition"),
-            "password": os.getenv("POSTGRES_PASSWORD", "password"),
-            "host": os.getenv("POSTGRES_HOST", "postgres"),
-            "port": int(os.getenv("POSTGRES_PORT", "5432")),
-            "hnsw": True,  # Use HNSW for better performance
-            "diskann": False  # Disable DiskANN for simplicity
+            "host": os.getenv("QDRANT_HOST", "localhost"),
+            "port": int(os.getenv("QDRANT_PORT", "6333")),
+            "collection_name": os.getenv("QDRANT_COLLECTION_NAME", "memories"),
+            "embedding_model_dims": 1536,  # Match Gemini output dimensionality
+            "on_disk": True
         }
     }
 }
+
+# Debug: Log the configuration being used
+logger.info(f"Mem0 Configuration: {config}")
 
 app = FastAPI()
 
@@ -66,7 +71,16 @@ app.add_middleware(
 )
 # --- End CORS Configuration ---
 
-memory = Memory.from_config(config)
+# Initialize memory with error handling
+try:
+    logger.info("Initializing Mem0 memory with Qdrant configuration...")
+    memory = Memory.from_config(config)
+    logger.info("Mem0 memory initialized successfully with Qdrant")
+    memory_available = True
+except Exception as e:
+    logger.error(f"Failed to initialize Mem0 memory: {e}")
+    memory_available = False
+    memory = None
 
 class AddMemoryRequest(BaseModel):
     messages: List[Dict[str, str]]
@@ -77,6 +91,9 @@ class AddMemoryRequest(BaseModel):
 
 @app.post("/memories")
 async def add_memory_route(req: AddMemoryRequest):
+    if not memory_available or memory is None:
+        return {"error": "Memory service is not available", "detail": "Mem0 memory was not initialized properly"}
+
     result = memory.add(
         messages=req.messages,
         user_id=req.user_id,
@@ -96,6 +113,9 @@ class SearchRequest(BaseModel):
 
 @app.post("/search")
 async def search_memory_route(req: SearchRequest):
+    if not memory_available or memory is None:
+        return {"error": "Memory service is not available", "detail": "Mem0 memory was not initialized properly"}
+
     result = memory.search(
         query=req.query,
         user_id=req.user_id,
@@ -108,11 +128,52 @@ async def search_memory_route(req: SearchRequest):
 
 @app.get("/memories")
 async def get_all_memories_route(user_id: Optional[str] = None, agent_id: Optional[str] = None, run_id: Optional[str] = None, limit: Optional[int] = 100):
+    if not memory_available or memory is None:
+        return {"error": "Memory service is not available", "detail": "Mem0 memory was not initialized properly"}
+
     memories = memory.get_all(user_id=user_id, agent_id=agent_id, run_id=run_id, limit=limit)
     return memories
 
+@app.delete("/memories/{memory_id}")
+async def delete_memory_route(memory_id: str):
+    """Delete a specific memory by ID"""
+    if not memory_available or memory is None:
+        return {"error": "Memory service is not available", "detail": "Mem0 memory was not initialized properly"}
+
+    try:
+        print(f"[DEBUG] Attempting to delete memory: {memory_id}")
+
+        # First check if the memory exists
+        try:
+            existing_memory = memory.get(memory_id=memory_id)
+            print(f"[DEBUG] Memory exists check: {existing_memory is not None}")
+            if not existing_memory:
+                print(f"[DEBUG] Memory {memory_id} not found in get() call")
+                from fastapi import HTTPException
+                raise HTTPException(status_code=404, detail=f"Memory {memory_id} not found")
+        except Exception as get_error:
+            print(f"[DEBUG] Error checking memory existence: {get_error}")
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail=f"Memory {memory_id} not found: {str(get_error)}")
+
+        # If memory exists, delete it
+        result = memory.delete(memory_id=memory_id)
+        print(f"[DEBUG] Delete result: {result}")
+        return {"result": result, "message": f"Memory {memory_id} deleted successfully."}
+
+    except Exception as e:
+        print(f"[DEBUG] Exception in delete_memory_route: {e}")
+        print(f"[DEBUG] Exception type: {type(e)}")
+        from fastapi import HTTPException
+        if "HTTPException" in str(type(e)):
+            raise e  # Re-raise HTTPExceptions
+        raise HTTPException(status_code=500, detail=f"Error deleting memory {memory_id}: {str(e)}")
+
 @app.delete("/memories")
 async def delete_all_user_memories_route(user_id: str):
+    if not memory_available or memory is None:
+        return {"error": "Memory service is not available", "detail": "Mem0 memory was not initialized properly"}
+
     result = memory.delete_all(user_id=user_id)
     return {"result": result, "message": f"All memories for user {user_id} deleted."}
 
@@ -122,17 +183,22 @@ async def health_check():
     try:
         # Basic health check - ensure the service is running
         return {
-            "status": "ok",
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "status": "ok" if memory_available else "degraded",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "service": "mem0-service",
             "version": "1.0.0",
-            "memory_provider": "pgvector",
-            "llm_provider": "gemini"
+            "memory_provider": "qdrant" if memory_available else "none",
+            "llm_provider": "gemini",
+            "embedding_dimensions": 1536,
+            "memory_available": memory_available,
+            "memory_initialized": memory_available and memory is not None
         }
     except Exception as e:
         return {
             "status": "error",
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "service": "mem0-service",
-            "error": str(e)
+            "error": str(e),
+            "memory_available": False,
+            "memory_initialized": False
         }

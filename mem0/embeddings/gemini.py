@@ -1,7 +1,8 @@
 import os
 from typing import Literal, Optional
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 from mem0.configs.embeddings.base import BaseEmbedderConfig
 from mem0.embeddings.base import EmbeddingBase
@@ -11,12 +12,14 @@ class GoogleGenAIEmbedding(EmbeddingBase):
     def __init__(self, config: Optional[BaseEmbedderConfig] = None):
         super().__init__(config)
 
-        self.config.model = self.config.model or "models/text-embedding-004"
-        self.config.embedding_dims = self.config.embedding_dims or 768
+        # Use environment variable for model name, fallback to default
+        self.config.model = self.config.model or os.getenv("GEMINI_EMBEDDING_MODEL", "models/gemini-embedding-001")
+        self.config.embedding_dims = self.config.embedding_dims or int(os.getenv("EMBEDDING_DIMENSIONS", "1536"))
 
         api_key = self.config.api_key or os.getenv("GOOGLE_API_KEY")
 
-        genai.configure(api_key=api_key)
+        # Configure the client with API key
+        self.client = genai.Client(api_key=api_key)
 
     def embed(self, text, memory_action: Optional[Literal["add", "search", "update"]] = None):
         """
@@ -28,7 +31,14 @@ class GoogleGenAIEmbedding(EmbeddingBase):
             list: The embedding vector.
         """
         text = text.replace("\n", " ")
-        response = genai.embed_content(
-            model=self.config.model, content=text, output_dimensionality=self.config.embedding_dims
+
+        # Call the embed_content method with output_dimensionality parameter to ensure 1536 dimensions
+        result = self.client.models.embed_content(
+            model=self.config.model,
+            contents=text,
+            config=types.EmbedContentConfig(output_dimensionality=self.config.embedding_dims)
         )
-        return response["embedding"]
+
+        # Extract the embedding values from the result
+        [embedding_obj] = result.embeddings
+        return embedding_obj.values

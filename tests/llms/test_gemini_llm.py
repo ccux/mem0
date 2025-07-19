@@ -17,7 +17,7 @@ def mock_gemini_client():
 
 
 def test_generate_response_without_tools(mock_gemini_client: Mock):
-    config = BaseLlmConfig(model="gemini-1.5-flash-latest", temperature=0.7, max_tokens=100, top_p=1.0)
+    config = BaseLlmConfig(model="gemini-2.5-flash", temperature=0.7, max_tokens=100, top_p=1.0)
     llm = GeminiLLM(config)
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},
@@ -47,7 +47,7 @@ def test_generate_response_without_tools(mock_gemini_client: Mock):
 
 
 def test_generate_response_with_tools(mock_gemini_client: Mock):
-    config = BaseLlmConfig(model="gemini-1.5-flash-latest", temperature=0.7, max_tokens=100, top_p=1.0)
+    config = BaseLlmConfig(model="gemini-2.5-flash", temperature=0.7, max_tokens=100, top_p=1.0)
     llm = GeminiLLM(config)
     messages = [
         {"role": "system", "content": "You are a helpful assistant."},

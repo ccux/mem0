@@ -19,7 +19,7 @@ class GeminiLLM(LLMBase):
         super().__init__(config)
 
         if not self.config.model:
-            self.config.model = "gemini-1.5-flash-latest"
+            self.config.model = "gemini-2.5-flash"
 
         api_key = self.config.api_key or os.getenv("GEMINI_API_KEY")
         genai.configure(api_key=api_key)

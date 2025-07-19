@@ -73,23 +73,23 @@ RUN mkdir -p /app/logs /app/data && \
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
-ENV PORT=8001
+ENV PORT=8002
 
 # Security: Use non-root user
 USER appuser
 
 # Expose port
-EXPOSE 8001
+EXPOSE 8002
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=15s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8001/health || exit 1
+    CMD curl -f http://localhost:8002/health || exit 1
 
 # Use tini as init system
 ENTRYPOINT ["/sbin/tini", "--"]
 
 # Default command
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002"]
 
 # Labels for metadata
 LABEL maintainer="Cognition Suite Team"

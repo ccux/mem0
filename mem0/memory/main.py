@@ -70,7 +70,7 @@ class Memory(MemoryBase):
         else:
             self.graph = None
 
-        self.config.vector_store.config.collection_name = "mem0migrations"
+        # self.config.vector_store.config.collection_name = "mem0migrations"  # Removed to respect config
         if self.config.vector_store.provider in ["faiss", "qdrant"]:
             provider_path = f"migrations_{self.config.vector_store.provider}"
             self.config.vector_store.config.path = os.path.join(mem0_dir, provider_path)
@@ -443,6 +443,14 @@ class Memory(MemoryBase):
     def _get_all_from_vector_store(self, filters, limit):
         memories = self.vector_store.list(filters=filters, limit=limit)
 
+        # Handle both flat lists and nested lists from different vector store implementations
+        if memories and isinstance(memories[0], list):
+            # Some vector stores return nested lists [results] - flatten it
+            memories = memories[0] if memories else []
+        elif not isinstance(memories, list):
+            # Handle case where memories is not a list at all
+            memories = []
+
         excluded_keys = {
             "user_id",
             "agent_id",
@@ -453,25 +461,61 @@ class Memory(MemoryBase):
             "updated_at",
             "id",
         }
-        all_memories = [
-            {
-                **MemoryItem(
-                    id=mem.id,
-                    memory=mem.payload["data"],
-                    hash=mem.payload.get("hash"),
-                    created_at=mem.payload.get("created_at"),
-                    updated_at=mem.payload.get("updated_at"),
-                ).model_dump(exclude={"score"}),
-                **{key: mem.payload[key] for key in ["user_id", "agent_id", "run_id"] if key in mem.payload},
-                **(
-                    {"metadata": {k: v for k, v in mem.payload.items() if k not in excluded_keys}}
-                    if any(k for k in mem.payload if k not in excluded_keys)
-                    else {}
-                ),
-            }
-            for mem in memories[0]
-        ]
-        return all_memories
+
+        # Filter out memories that can't be individually retrieved (consistency fix)
+        valid_memories = []
+        print(f"[DEBUG] _get_all_from_vector_store: Processing {len(memories)} memories")
+        for memory in memories:
+            # Ensure memory is an object with required attributes
+            if not hasattr(memory, 'id') or not hasattr(memory, 'payload'):
+                print(f"[DEBUG] Skipping invalid memory object: {type(memory)}")
+                continue
+
+            # Check if this memory can be individually retrieved
+            try:
+                individual_memory = self.vector_store.get(vector_id=memory.id)
+                if individual_memory is None:
+                    # Memory exists in list but not individually - skip it (data consistency issue)
+                    print(f"[DEBUG] Skipping memory {memory.id} - exists in list but not individually")
+                    continue
+            except Exception as e:
+                print(f"[DEBUG] Error checking memory {memory.id}: {e}")
+                continue
+
+            print(f"[DEBUG] Memory {memory.id} is valid - including in results")
+
+            # Ensure payload exists and has required data
+            if not memory.payload or "data" not in memory.payload:
+                print(f"[DEBUG] Skipping memory {memory.id} - missing data in payload")
+                continue
+
+            # Prepare base memory item
+            try:
+                memory_item = MemoryItem(
+                    id=memory.id,
+                    memory=memory.payload["data"],
+                    hash=memory.payload.get("hash"),
+                    created_at=memory.payload.get("created_at"),
+                    updated_at=memory.payload.get("updated_at"),
+                ).model_dump(exclude={"score"})
+
+                # Add user_id, agent_id, run_id filters
+                for key in ["user_id", "agent_id", "run_id"]:
+                    if key in memory.payload:
+                        memory_item[key] = memory.payload[key]
+
+                # Add metadata if there are additional keys
+                additional_metadata = {k: v for k, v in memory.payload.items() if k not in excluded_keys}
+                if additional_metadata:
+                    memory_item["metadata"] = additional_metadata
+
+                valid_memories.append(memory_item)
+            except Exception as e:
+                print(f"[DEBUG] Error processing memory {memory.id}: {e}")
+                continue
+
+        print(f"[DEBUG] _get_all_from_vector_store: Returning {len(valid_memories)} valid memories")
+        return valid_memories
 
     def search(self, query, user_id=None, agent_id=None, run_id=None, limit=100, filters=None):
         """
@@ -1197,6 +1241,14 @@ class AsyncMemory(MemoryBase):
     async def _get_all_from_vector_store(self, filters, limit):
         memories = await asyncio.to_thread(self.vector_store.list, filters=filters, limit=limit)
 
+        # Handle both flat lists and nested lists from different vector store implementations
+        if memories and isinstance(memories[0], list):
+            # Some vector stores return nested lists [results] - flatten it
+            memories = memories[0] if memories else []
+        elif not isinstance(memories, list):
+            # Handle case where memories is not a list at all
+            memories = []
+
         excluded_keys = {
             "user_id",
             "agent_id",
@@ -1207,25 +1259,61 @@ class AsyncMemory(MemoryBase):
             "updated_at",
             "id",
         }
-        all_memories = [
-            {
-                **MemoryItem(
-                    id=mem.id,
-                    memory=mem.payload["data"],
-                    hash=mem.payload.get("hash"),
-                    created_at=mem.payload.get("created_at"),
-                    updated_at=mem.payload.get("updated_at"),
-                ).model_dump(exclude={"score"}),
-                **{key: mem.payload[key] for key in ["user_id", "agent_id", "run_id"] if key in mem.payload},
-                **(
-                    {"metadata": {k: v for k, v in mem.payload.items() if k not in excluded_keys}}
-                    if any(k for k in mem.payload if k not in excluded_keys)
-                    else {}
-                ),
-            }
-            for mem in memories[0]
-        ]
-        return all_memories
+
+        # Filter out memories that can't be individually retrieved (consistency fix)
+        valid_memories = []
+        print(f"[DEBUG] _get_all_from_vector_store: Processing {len(memories)} memories")
+        for memory in memories:
+            # Ensure memory is an object with required attributes
+            if not hasattr(memory, 'id') or not hasattr(memory, 'payload'):
+                print(f"[DEBUG] Skipping invalid memory object: {type(memory)}")
+                continue
+
+            # Check if this memory can be individually retrieved
+            try:
+                individual_memory = await asyncio.to_thread(self.vector_store.get, vector_id=memory.id)
+                if individual_memory is None:
+                    # Memory exists in list but not individually - skip it (data consistency issue)
+                    print(f"[DEBUG] Skipping memory {memory.id} - exists in list but not individually")
+                    continue
+            except Exception as e:
+                print(f"[DEBUG] Error checking memory {memory.id}: {e}")
+                continue
+
+            print(f"[DEBUG] Memory {memory.id} is valid - including in results")
+
+            # Ensure payload exists and has required data
+            if not memory.payload or "data" not in memory.payload:
+                print(f"[DEBUG] Skipping memory {memory.id} - missing data in payload")
+                continue
+
+            # Prepare base memory item
+            try:
+                memory_item = MemoryItem(
+                    id=memory.id,
+                    memory=memory.payload["data"],
+                    hash=memory.payload.get("hash"),
+                    created_at=memory.payload.get("created_at"),
+                    updated_at=memory.payload.get("updated_at"),
+                ).model_dump(exclude={"score"})
+
+                # Add user_id, agent_id, run_id filters
+                for key in ["user_id", "agent_id", "run_id"]:
+                    if key in memory.payload:
+                        memory_item[key] = memory.payload[key]
+
+                # Add metadata if there are additional keys
+                additional_metadata = {k: v for k, v in memory.payload.items() if k not in excluded_keys}
+                if additional_metadata:
+                    memory_item["metadata"] = additional_metadata
+
+                valid_memories.append(memory_item)
+            except Exception as e:
+                print(f"[DEBUG] Error processing memory {memory.id}: {e}")
+                continue
+
+        print(f"[DEBUG] _get_all_from_vector_store: Returning {len(valid_memories)} valid memories")
+        return valid_memories
 
     async def search(self, query, user_id=None, agent_id=None, run_id=None, limit=100, filters=None):
         """

@@ -1,0 +1,23 @@
+name: mem0-standalone
+
+services:
+  mem0:
+    build:
+      context: ..  # Set context to parent directory (mem0 root)
+      dockerfile: server/dev.Dockerfile
+    ports:
+      - "8888:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./history:/app/server/history      # History db location
+      - .:/app/server                      # Server code for hot reload
+      - ../mem0:/app/mem0                  # Mem0 library for hot reload
+      - ../mem0/memory/enhanced_memory.py:/app/mem0/memory/enhanced_memory.py  # Enhanced memory file
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+    network_mode: "host"  # Use host networking to access existing services
+    restart: unless-stopped
