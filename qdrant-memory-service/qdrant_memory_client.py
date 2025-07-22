@@ -56,7 +56,8 @@ logger = logging.getLogger(__name__)
 
 class QdrantMemoryClient:
     def __init__(self):
-        self.client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+        # Use HTTPS for Qdrant connection since TLS is enabled
+        self.client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT, https=True, verify=False)
         self.collection_name = QDRANT_COLLECTION_NAME
         self.create_collection()
 
