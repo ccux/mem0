@@ -10,11 +10,8 @@ RUN apt-get update && apt-get install -y \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Doppler CLI
-RUN wget -q -t3 'https://packages.doppler.com/public/cli/rsa.8004D9FF50437357.key' -O /etc/apt/keyrings/cli.gpg && \
-    echo 'deb [signed-by=/etc/apt/keyrings/cli.gpg] https://packages.doppler.com/public/cli/deb/debian any-version main' | tee /etc/apt/sources.list.d/cli.list && \
-    apt-get update && apt-get install -y doppler && \
-    rm -rf /var/lib/apt/lists/*
+# Install Doppler CLI using official method
+RUN (curl -Ls --tlsv1.2 --proto "=https" --retry 3 https://cli.doppler.com/install.sh || wget -t 3 -qO- https://cli.doppler.com/install.sh) | sh
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
