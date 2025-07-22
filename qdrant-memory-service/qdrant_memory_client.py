@@ -49,15 +49,15 @@ def parse_datetime_safe(dt_value):
     logging.error(f"parse_datetime_safe: Unexpected type for value '{dt_value}': {type(dt_value)}")
     return None
 
-from config import QDRANT_HOST, QDRANT_PORT, QDRANT_COLLECTION_NAME, VECTOR_DIMENSION
+from config import QDRANT_HOST, QDRANT_PORT, QDRANT_COLLECTION_NAME, VECTOR_DIMENSION, QDRANT_USE_HTTPS
 from models import MemoryResponse
 
 logger = logging.getLogger(__name__)
 
 class QdrantMemoryClient:
     def __init__(self):
-        # Use HTTPS for Qdrant connection since TLS is enabled
-        self.client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT, https=True, verify=False)
+        # Use HTTPS for Qdrant connection based on configuration
+        self.client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT, https=QDRANT_USE_HTTPS, verify=False)
         self.collection_name = QDRANT_COLLECTION_NAME
         self.create_collection()
 

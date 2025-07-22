@@ -9,6 +9,8 @@ load_dotenv()
 QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6333"))
 QDRANT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME", "memories")
+# Use HTTPS for Qdrant connection (set to false for dev environment)
+QDRANT_USE_HTTPS = os.getenv("QDRANT_USE_HTTPS", "true").lower() == "true"
 
 # Google AI Configuration
 GOOGLE_API_KEY = os.getenv("GOOGLE_GENERATIVE_AI_API_KEY") or os.getenv("GOOGLE_API_KEY")
