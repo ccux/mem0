@@ -20,7 +20,8 @@ VECTOR_DIMENSION = int(os.getenv("EMBEDDING_DIMENSIONS", "1536"))  # Use 1536 di
 
 # API Configuration
 API_HOST = os.getenv("API_HOST", "0.0.0.0")
-API_PORT = int(os.getenv("API_PORT", "8002"))
+# Prioritize MEMORY_SERVICE_PORT over API_PORT to avoid conflicts with Doppler
+API_PORT = int(os.getenv("MEMORY_SERVICE_PORT") or os.getenv("API_PORT", "8002"))
 
 # Validate required environment variables
 if not GOOGLE_API_KEY:
