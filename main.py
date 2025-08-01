@@ -27,7 +27,7 @@ config = {
     "llm": {
         "provider": "gemini",
         "config": {
-            "model": "gemini-2.5-flash",
+            "model": "gemini-2.5-flash-lite",
             "temperature": 0.2,
             "max_tokens": 2000,
         }

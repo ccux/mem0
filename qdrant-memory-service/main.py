@@ -545,10 +545,16 @@ async def search_memories(request: MemorySearch):
         raise HTTPException(status_code=500, detail=f"Error searching memories: {str(e)}")
 
 @app.put("/memories/{memory_id}", response_model=dict)
-async def update_memory(memory_id: str, request: MemoryUpdate):
+async def update_memory(memory_id: str, request: MemoryUpdate, user_id: Optional[str] = Query(None)):
     """Update a memory."""
     try:
-        logger.info(f"Updating memory: {memory_id}")
+        # Use user_id from request body if provided, otherwise from query parameter
+        effective_user_id = request.user_id or user_id
+        
+        if not effective_user_id:
+            raise HTTPException(status_code=400, detail="user_id is required either in request body or as query parameter")
+        
+        logger.info(f"Updating memory: {memory_id} for user: {effective_user_id}")
 
         # Generate new embedding
         embedding = gemini_client.generate_embedding(request.data)
@@ -559,7 +565,7 @@ async def update_memory(memory_id: str, request: MemoryUpdate):
         # Update in Qdrant
         success = qdrant_client.update_memory(
             memory_id=memory_id,
-            user_id=request.user_id,
+            user_id=effective_user_id,
             new_memory=request.data,
             new_vector=embedding,
             metadata={"category": category}

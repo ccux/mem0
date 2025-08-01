@@ -666,16 +666,74 @@ class Memory(MemoryBase):
             )
 
         capture_event("mem0.delete_all", self, {"keys": list(filters.keys()), "sync_type": "sync"})
+        
+        # Get all memories to delete
         memories = self.vector_store.list(filters=filters)[0]
+        initial_count = len(memories)
+        logger.info(f"Found {initial_count} memories to delete")
+        
+        if initial_count == 0:
+            logger.info("No memories to delete")
+            return {"message": "No memories found to delete", "deletedCount": 0}
+        
+        # Delete memories individually with better error handling
+        deleted_count = 0
+        failed_ids = []
+        
         for memory in memories:
-            self._delete_memory(memory.id)
+            try:
+                self._delete_memory(memory.id)
+                deleted_count += 1
+            except Exception as e:
+                logger.error(f"Failed to delete memory {memory.id}: {e}")
+                failed_ids.append(memory.id)
+        
+        # Small delay to allow vector store to propagate changes
+        import time
+        time.sleep(0.5)
+        
+        # Verify deletion by checking if memories still exist
+        remaining_memories = self.vector_store.list(filters=filters)[0]
+        remaining_count = len(remaining_memories)
+        
+        if remaining_count > 0:
+            logger.warning(f"After deletion, {remaining_count} memories still exist. Attempting retry...")
+            
+            # Retry deletion for remaining memories
+            retry_deleted = 0
+            for memory in remaining_memories:
+                try:
+                    self._delete_memory(memory.id)
+                    retry_deleted += 1
+                    deleted_count += 1
+                except Exception as e:
+                    logger.error(f"Retry failed for memory {memory.id}: {e}")
+                    if memory.id not in failed_ids:
+                        failed_ids.append(memory.id)
+            
+            # Final verification after retry
+            time.sleep(0.5)
+            final_remaining = self.vector_store.list(filters=filters)[0]
+            final_remaining_count = len(final_remaining)
+            
+            if final_remaining_count > 0:
+                logger.error(f"Failed to delete all memories. {final_remaining_count} memories still exist after retry")
+                # Log the IDs that couldn't be deleted
+                remaining_ids = [m.id for m in final_remaining]
+                logger.error(f"Remaining memory IDs: {remaining_ids}")
 
-        logger.info(f"Deleted {len(memories)} memories")
+        logger.info(f"Delete operation completed. Deleted {deleted_count} out of {initial_count} memories")
 
         if self.enable_graph:
             self.graph.delete_all(filters)
 
-        return {"message": "Memories deleted successfully!"}
+        # Return actual deletion count instead of just success message
+        return {
+            "message": f"Deleted {deleted_count} memories",
+            "deletedCount": deleted_count,
+            "initialCount": initial_count,
+            "failedCount": len(failed_ids)
+        }
 
     def history(self, memory_id):
         """
@@ -1464,20 +1522,93 @@ class AsyncMemory(MemoryBase):
             )
 
         capture_event("mem0.delete_all", self, {"keys": list(filters.keys()), "sync_type": "async"})
-        memories = await asyncio.to_thread(self.vector_store.list, filters=filters)
+        
+        # Get all memories to delete
+        memories_result = await asyncio.to_thread(self.vector_store.list, filters=filters)
+        memories = memories_result[0] if memories_result else []
+        initial_count = len(memories)
+        logger.info(f"Found {initial_count} memories to delete")
+        
+        if initial_count == 0:
+            logger.info("No memories to delete")
+            return {"message": "No memories found to delete", "deletedCount": 0}
+        
+        # Delete memories concurrently with error handling
+        deleted_count = 0
+        failed_ids = []
+        
+        # Batch delete in chunks to avoid overwhelming the system
+        chunk_size = 10
+        for i in range(0, len(memories), chunk_size):
+            chunk = memories[i:i + chunk_size]
+            delete_tasks = []
+            
+            for memory in chunk:
+                delete_tasks.append(self._delete_memory(memory.id))
+            
+            # Wait for chunk to complete
+            results = await asyncio.gather(*delete_tasks, return_exceptions=True)
+            
+            for j, result in enumerate(results):
+                if isinstance(result, Exception):
+                    logger.error(f"Failed to delete memory {chunk[j].id}: {result}")
+                    failed_ids.append(chunk[j].id)
+                else:
+                    deleted_count += 1
+        
+        # Small delay to allow vector store to propagate changes
+        await asyncio.sleep(0.5)
+        
+        # Verify deletion by checking if memories still exist
+        remaining_result = await asyncio.to_thread(self.vector_store.list, filters=filters)
+        remaining_memories = remaining_result[0] if remaining_result else []
+        remaining_count = len(remaining_memories)
+        
+        if remaining_count > 0:
+            logger.warning(f"After deletion, {remaining_count} memories still exist. Attempting retry...")
+            
+            # Retry deletion for remaining memories
+            retry_deleted = 0
+            retry_tasks = []
+            
+            for memory in remaining_memories:
+                retry_tasks.append(self._delete_memory(memory.id))
+            
+            retry_results = await asyncio.gather(*retry_tasks, return_exceptions=True)
+            
+            for j, result in enumerate(retry_results):
+                if isinstance(result, Exception):
+                    logger.error(f"Retry failed for memory {remaining_memories[j].id}: {result}")
+                    if remaining_memories[j].id not in failed_ids:
+                        failed_ids.append(remaining_memories[j].id)
+                else:
+                    retry_deleted += 1
+                    deleted_count += 1
+            
+            # Final verification after retry
+            await asyncio.sleep(0.5)
+            final_result = await asyncio.to_thread(self.vector_store.list, filters=filters)
+            final_remaining = final_result[0] if final_result else []
+            final_remaining_count = len(final_remaining)
+            
+            if final_remaining_count > 0:
+                logger.error(f"Failed to delete all memories. {final_remaining_count} memories still exist after retry")
+                # Log the IDs that couldn't be deleted
+                remaining_ids = [m.id for m in final_remaining]
+                logger.error(f"Remaining memory IDs: {remaining_ids}")
 
-        delete_tasks = []
-        for memory in memories[0]:
-            delete_tasks.append(self._delete_memory(memory.id))
-
-        await asyncio.gather(*delete_tasks)
-
-        logger.info(f"Deleted {len(memories[0])} memories")
+        logger.info(f"Delete operation completed. Deleted {deleted_count} out of {initial_count} memories")
 
         if self.enable_graph:
             await asyncio.to_thread(self.graph.delete_all, filters)
 
-        return {"message": "Memories deleted successfully!"}
+        # Return actual deletion count instead of just success message
+        return {
+            "message": f"Deleted {deleted_count} memories",
+            "deletedCount": deleted_count,
+            "initialCount": initial_count,
+            "failedCount": len(failed_ids)
+        }
 
     async def history(self, memory_id):
         """

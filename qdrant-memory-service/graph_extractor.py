@@ -11,7 +11,7 @@ import re
 from typing import Dict, List, Any, Optional, Tuple
 from neo4j_graph_client import GraphEntity, GraphRelationship
 import uuid
-from google import genai
+import google.generativeai as genai
 
 logger = logging.getLogger(__name__)
 
@@ -24,11 +24,8 @@ class GraphExtractor:
     def _generate_gemini_response(self, prompt: str) -> str:
         """Generate response using Gemini LLM"""
         try:
-            model = self.gemini_client.client.models.generate_content(
-                model=self.gemini_client.llm_model,
-                contents=prompt
-            )
-            return model.text if model else ""
+            response = self.gemini_client.llm_model.generate_content(prompt)
+            return response.text if response else ""
         except Exception as e:
             logger.error(f"Error generating Gemini response: {e}")
             return ""

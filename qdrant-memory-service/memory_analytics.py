@@ -35,7 +35,7 @@ class MemoryAnalytics:
         """Generate response using Gemini LLM"""
         try:
             if self.gemini_client:
-                from google import genai
+                import google.generativeai as genai
                 model = self.gemini_client.client.models.generate_content(
                     model=self.gemini_client.llm_model,
                     contents=prompt

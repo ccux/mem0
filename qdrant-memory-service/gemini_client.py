@@ -1,129 +1,198 @@
-from google import genai
-from google.genai import types
-from typing import List, Dict, Any
 import logging
-import numpy as np
-
-from config import GOOGLE_API_KEY, GEMINI_EMBEDDING_MODEL, GEMINI_LLM_MODEL, CATEGORIZATION_PROMPT, MEMORY_CATEGORIES, VECTOR_DIMENSION
+from typing import Dict, Any, List
+from config import GOOGLE_API_KEY, GEMINI_EMBEDDING_MODEL, GEMINI_LLM_MODEL, KNOWLEDGE_EXTRACTION_PROMPT, MEMORY_CATEGORIES, VECTOR_DIMENSION
+import google.generativeai as genai
+try:
+    from google import genai as google_genai
+    from google.genai import types
+    USE_NEW_API = True
+except ImportError:
+    USE_NEW_API = False
+    logger = logging.getLogger(__name__)
+    logger.warning("google-genai package not available, using google-generativeai without output_dimensionality")
 
 logger = logging.getLogger(__name__)
 
 class GeminiClient:
     def __init__(self):
-        self.client = genai.Client(api_key=GOOGLE_API_KEY)
-        self.embedding_model = GEMINI_EMBEDDING_MODEL
-        self.llm_model = GEMINI_LLM_MODEL
-        logger.info(f"Initialized Gemini client with embedding model: {self.embedding_model}")
+        """Initialize Gemini client with API key and models."""
+        genai.configure(api_key=GOOGLE_API_KEY)
+        # For embeddings, we use the embedding model directly, not GenerativeModel
+        self.embedding_model_name = GEMINI_EMBEDDING_MODEL
+        self.llm_model = genai.GenerativeModel(GEMINI_LLM_MODEL)
+        self.client = genai
+        
+        # Initialize new API client if available
+        if USE_NEW_API:
+            self.google_client = google_genai.Client(api_key=GOOGLE_API_KEY)
+
+    def get_embeddings(self, text: str) -> List[float]:
+        """Get embeddings for text using Gemini."""
+        try:
+            if USE_NEW_API:
+                # Use the new Google GenAI client API with output_dimensionality
+                result = self.google_client.models.embed_content(
+                    model=self.embedding_model_name,
+                    contents=text,
+                    config=types.EmbedContentConfig(output_dimensionality=VECTOR_DIMENSION)
+                )
+                # Extract embedding values from the result
+                if result.embeddings:
+                    embedding_obj = result.embeddings[0]
+                    return list(embedding_obj.values)
+                else:
+                    logger.error("No embeddings returned from Gemini")
+                    return [0.0] * VECTOR_DIMENSION
+            else:
+                # Fallback to google.generativeai without output_dimensionality
+                # This will return 768 dimensions by default
+                logger.warning("Using google-generativeai without output_dimensionality - dimension mismatch may occur")
+                response = genai.embed_content(
+                    model=self.embedding_model_name,
+                    content=text
+                )
+                # Extract embedding from response
+                if response and 'embedding' in response:
+                    return response['embedding']
+                else:
+                    logger.error("No embedding returned from Gemini")
+                    return [0.0] * VECTOR_DIMENSION
+        except Exception as e:
+            logger.error(f"Error getting embeddings: {e}")
+            return [0.0] * VECTOR_DIMENSION
 
     def generate_embedding(self, text: str) -> List[float]:
-        """Generate embedding for text using Gemini."""
+        """Generate embedding for text (alias for get_embeddings)."""
+        return self.get_embeddings(text)
+
+    def extract_memories_from_messages(self, messages: List[Dict[str, Any]]) -> List[str]:
+        """Extract memories from a list of messages."""
         try:
-            result = self.client.models.embed_content(
-                model=self.embedding_model,
-                contents=text,
-                config=types.EmbedContentConfig(output_dimensionality=VECTOR_DIMENSION)
-            )
-            [embedding_obj] = result.embeddings
-            embedding_values_np = np.array(embedding_obj.values)
-            # Only normalize if not 3072-dim (Gemini normalizes 3072-dim by default)
-            if VECTOR_DIMENSION in (768, 1536):
-                norm = np.linalg.norm(embedding_values_np)
-                if norm > 0:
-                    embedding_values_np = embedding_values_np / norm
-            return embedding_values_np.tolist()
+            # Combine all messages into a single text
+            combined_text = ""
+            for message in messages:
+                if isinstance(message, dict):
+                    content = message.get('content', '')
+                    if isinstance(content, str):
+                        combined_text += content + "\n"
+                elif isinstance(message, str):
+                    combined_text += message + "\n"
+
+            if not combined_text.strip():
+                logger.warning("No content found in messages")
+                return []
+
+            # Use the sophisticated knowledge extraction prompt
+            prompt = f"{KNOWLEDGE_EXTRACTION_PROMPT}\n\nContent to analyze:\n{combined_text}"
+
+            response = self.llm_model.generate_content(prompt)
+            response_text = response.text.strip()
+
+            # Parse the JSON response
+            import json
+            import re
+            try:
+                # Clean the response text - remove markdown code blocks if present
+                cleaned_response = response_text.strip()
+                if cleaned_response.startswith("```json"):
+                    cleaned_response = cleaned_response[7:]  # Remove ```json
+                if cleaned_response.endswith("```"):
+                    cleaned_response = cleaned_response[:-3]  # Remove ```
+                cleaned_response = cleaned_response.strip()
+
+                result = json.loads(cleaned_response)
+
+                if result.get("items") and len(result["items"]) > 0:
+                    # Extract the memory text from each item
+                    memories = []
+                    for item in result["items"]:
+                        # Try both "memory" and "content" fields
+                        memory_text = item.get("memory", "") or item.get("content", "")
+                        if memory_text and memory_text.strip():
+                            memories.append(memory_text.strip())
+
+                    logger.info(f"Extracted {len(memories)} memories from messages")
+                    return memories
+                else:
+                    logger.info("No memories extracted from messages")
+                    return []
+
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse JSON response from memory extraction: {e}")
+                logger.error(f"Raw response: {response_text}")
+                return []
+
         except Exception as e:
-            logger.error(f"Error generating embedding: {e}")
-            raise
+            logger.error(f"Error extracting memories from messages: {e}")
+            return []
 
-    def categorize_memory(self, content: str) -> str:
-        """Categorize memory content using Gemini LLM."""
+    def categorize_memory_sophisticated(self, content: str) -> str:
+        """Categorize memory content using sophisticated knowledge extraction."""
         try:
-            prompt = CATEGORIZATION_PROMPT.format(content=content)
+            # Use the sophisticated knowledge extraction prompt
+            prompt = f"{KNOWLEDGE_EXTRACTION_PROMPT}\n\nContent to analyze:\n{content}"
 
-            response = self.client.models.generate_content(
-                model=self.llm_model,
-                contents=prompt
-            )
-            category = response.text.strip().lower()
+            response = self.llm_model.generate_content(prompt)
+            response_text = response.text.strip()
 
-            # Validate category
-            if category in MEMORY_CATEGORIES:
-                logger.info(f"Categorized content as: {category}")
-                return category
-            else:
-                logger.warning(f"Invalid category '{category}', defaulting to 'general'")
+            # Parse the JSON response
+            import json
+            try:
+                result = json.loads(response_text)
+
+                if result.get("items") and len(result["items"]) > 0:
+                    # Get the highest confidence item
+                    best_item = max(result["items"], key=lambda x: x.get("confidence", 0))
+                    category = best_item.get("category", "general")
+
+                    # Validate category
+                    if category in MEMORY_CATEGORIES:
+                        logger.info(f"Categorized content as: {category} (sophisticated)")
+                        return category
+                    else:
+                        logger.warning(f"Invalid category '{category}' from sophisticated extraction, defaulting to 'general'")
+                        return "general"
+                else:
+                    logger.info("No valid items extracted, using 'general' category")
+                    return "general"
+
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse JSON response from sophisticated extraction: {e}")
+                logger.error(f"Raw response: {response_text}")
                 return "general"
 
         except Exception as e:
-            logger.error(f"Error categorizing memory: {e}")
-            return "general"  # Fallback to general category
+            logger.error(f"Error in sophisticated categorization: {e}")
+            return "general"
 
-    def extract_memories_from_messages(self, messages: List[Dict[str, Any]]) -> List[str]:
-        """Extract memorable information from conversation messages."""
-        try:
-            # Combine all message content
-            combined_content = []
-            for message in messages:
-                if isinstance(message, dict) and "content" in message:
-                    combined_content.append(str(message["content"]))
-                elif isinstance(message, str):
-                    combined_content.append(message)
+    # DEPRECATED: Simple categorization method
+    # This is kept for backward compatibility but should not be used for new code.
+    # Use categorize_memory_sophisticated instead for consistent filtering and better quality.
+    def categorize_memory(self, content: str) -> str:
+        """Categorize memory content using sophisticated knowledge extraction (DEPRECATED: use categorize_memory_sophisticated)."""
+        import warnings
+        warnings.warn(
+            "categorize_memory is deprecated. Use categorize_memory_sophisticated for better categorization.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return self.categorize_memory_sophisticated(content)
 
-            if not combined_content:
-                return []
+def categorize_content_sophisticated(content: str) -> str:
+    """
+    Categorize content using sophisticated knowledge extraction.
+    This is the preferred method for categorization.
 
-            full_content = " ".join(combined_content)
+    Args:
+        content: The content to categorize
 
-            # Use LLM to extract memorable information
-            extraction_prompt = f"""
-            Extract key memorable information from the following conversation.
-            Focus on facts, preferences, goals, important events, and personal details.
-            Return each piece of information as a separate line.
-            Only return factual, memorable information - ignore casual conversation.
-
-            Conversation:
-            {full_content}
-
-            Memorable information (one per line):
-            """
-
-            response = self.client.models.generate_content(
-                model=self.llm_model,
-                contents=extraction_prompt
-            )
-
-            # Parse response into individual memories
-            memories = []
-            for line in response.text.strip().split('\n'):
-                line = line.strip()
-                if line and not line.startswith('-') and len(line) > 10:
-                    # Clean up the line
-                    if line.startswith('- '):
-                        line = line[2:]
-                    memories.append(line)
-
-            logger.info(f"Extracted {len(memories)} memories from messages")
-            return memories
-
-        except Exception as e:
-            logger.error(f"Error extracting memories: {e}")
-            return []
-
-    def generate_response(self, messages, tools=None, tool_choice="auto"):
-        """Generate response using Gemini LLM for compatibility with Mem0 interface."""
-        try:
-            # Convert messages to a simple prompt if needed
-            if isinstance(messages, list):
-                prompt = "\n".join([msg.get("content", str(msg)) for msg in messages])
-            else:
-                prompt = str(messages)
-
-            response = self.client.models.generate_content(
-                model=self.llm_model,
-                contents=prompt
-            )
-            return response.text if response else ""
-
-        except Exception as e:
-            logger.error(f"Error generating response: {e}")
-            return ""
+    Returns:
+        str: The best category found, or 'general' as fallback
+    """
+    try:
+        # Create a temporary client for categorization
+        client = GeminiClient()
+        return client.categorize_memory_sophisticated(content)
+    except Exception as e:
+        logger.error(f"Error in categorize_content_sophisticated: {e}")
+        return "general"

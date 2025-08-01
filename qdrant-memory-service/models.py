@@ -10,8 +10,9 @@ class MemoryCreate(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
 
 class MemoryUpdate(BaseModel):
-    memory_id: str
+    memory_id: Optional[str] = None  # Made optional since it's in the URL path
     data: str
+    user_id: Optional[str] = None  # Made optional to maintain backward compatibility
 
 class MemoryDelete(BaseModel):
     memory_id: str
