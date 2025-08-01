@@ -138,7 +138,15 @@ class GeminiClient:
             # Parse the JSON response
             import json
             try:
-                result = json.loads(response_text)
+                # Clean the response text - remove markdown code blocks if present
+                cleaned_response = response_text.strip()
+                if cleaned_response.startswith("```json"):
+                    cleaned_response = cleaned_response[7:]  # Remove ```json
+                if cleaned_response.endswith("```"):
+                    cleaned_response = cleaned_response[:-3]  # Remove ```
+                cleaned_response = cleaned_response.strip()
+                
+                result = json.loads(cleaned_response)
 
                 if result.get("items") and len(result["items"]) > 0:
                     # Get the highest confidence item

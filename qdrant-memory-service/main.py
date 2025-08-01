@@ -244,7 +244,7 @@ async def add_memories(request: MemoryCreate):
         logger.error(f"Error adding memories: {e}")
         raise HTTPException(status_code=500, detail=f"Error adding memories: {str(e)}")
 
-async def _find_similar_memories(memory_text: str, user_id: str, similarity_threshold: float = 0.8) -> List[Dict]:
+async def _find_similar_memories(memory_text: str, user_id: str, similarity_threshold: float = 0.95) -> List[Dict]:
     """Find similar existing memories for deduplication."""
     try:
         # Search for similar memories using semantic search
@@ -298,33 +298,11 @@ async def _update_memory_with_new_info(memory_id: str, new_memory_text: str, use
         raise
 
 def _combine_memory_texts(old_text: str, new_text: str) -> str:
-    """Intelligently combine two memory texts to avoid redundancy."""
-    try:
-        # Use LLM to combine the texts intelligently
-        combine_prompt = f"""
-        Combine these two pieces of information about the same person/topic into a single, comprehensive statement.
-        Remove redundancy while preserving all important details.
-        Make the result natural and concise.
-
-        Information 1: {old_text}
-        Information 2: {new_text}
-
-        Combined information:
-        """
-
-        response = gemini_client.client.models.generate_content(
-            model=gemini_client.llm_model,
-            contents=combine_prompt
-        )
-
-        combined = response.text.strip()
-        logger.info(f"Combined memories: '{old_text}' + '{new_text}' -> '{combined}'")
-        return combined
-
-    except Exception as e:
-        logger.error(f"Error combining memory texts: {e}")
-        # Fallback: just concatenate with separator
-        return f"{old_text}. {new_text}"
+    """Keep memories separate - return the new text only to avoid violating 150 char limit."""
+    # IMPORTANT: Don't combine memories as this creates long strings that violate our rules
+    # Just return the new text
+    logger.info(f"Memory update: replacing '{old_text}' with '{new_text}'")
+    return new_text
 
 async def _extract_graph_async(memory_text: str, user_id: str, memory_id: str):
     """Extract graph entities and relationships asynchronously."""
