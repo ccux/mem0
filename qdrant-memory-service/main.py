@@ -489,6 +489,27 @@ async def get_memories(
         logger.error(f"Error getting memories: {e}")
         raise HTTPException(status_code=500, detail=f"Error getting memories: {str(e)}")
 
+@app.get("/memories/{memory_id}", response_model=MemoryResponse)
+async def get_memory_by_id(memory_id: str):
+    """Get a single memory by ID."""
+    try:
+        logger.info(f"Getting memory by ID: {memory_id}")
+        
+        # Get memory from Qdrant
+        memory = qdrant_client.get_memory(memory_id)
+        
+        if not memory:
+            raise HTTPException(status_code=404, detail="Memory not found")
+        
+        logger.info(f"Retrieved memory {memory_id}")
+        return MemoryResponse(**memory)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting memory {memory_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error getting memory: {str(e)}")
+
 @app.post("/search", response_model=MemorySearchResponse)
 async def search_memories(request: MemorySearch):
     """Search memories using vector similarity."""
