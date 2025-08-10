@@ -33,7 +33,8 @@ MEMORY_SERVICE_PORT = int(os.getenv("MEMORY_SERVICE_PORT", "8000"))
 
 # API configuration (for main.py compatibility)
 API_HOST = os.getenv("API_HOST", "0.0.0.0")
-API_PORT = int(os.getenv("API_PORT", "8000"))
+# Use MEMORY_SERVICE_PORT if set, otherwise fall back to API_PORT or default
+API_PORT = int(os.getenv("MEMORY_SERVICE_PORT", os.getenv("API_PORT", "8000")))
 
 # Logging configuration
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
