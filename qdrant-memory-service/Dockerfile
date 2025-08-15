@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     tini \
     wget \
+    gnupg \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Doppler CLI using official method

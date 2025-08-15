@@ -9,7 +9,7 @@ from models import (
     MemoryCreate, MemoryUpdate, MemoryDelete, MemoryBatchDelete, MemorySearch,
     MemoryResponse, MemoryListResponse, MemorySearchResponse, BatchDeleteResponse, HealthResponse,
     GraphEntityResponse, GraphRelationshipResponse, GraphSummaryResponse,
-    GraphSearchRequest, GraphSearchResponse, HybridSearchRequest, MemoryAnalyticsResponse
+    GraphSearchRequest, GraphSearchResponse, HybridSearchRequest, TestSearchRequest, MemoryAnalyticsResponse
 )
 from qdrant_memory_client import QdrantMemoryClient
 from gemini_client import GeminiClient
@@ -753,6 +753,89 @@ async def get_search_suggestions(query: str, user_id: str, limit: int = 5):
         return {"suggestions": suggestions}
     except Exception as e:
         logger.error(f"Error getting search suggestions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/search/test")
+async def perform_test_search(request: TestSearchRequest):
+    """Perform test search with detailed configuration and debugging."""
+    try:
+        logger.info(f"Test search for user: {request.user_id}, query: {request.query}, mode: {request.search_mode.mode}")
+        
+        if not hybrid_search_service:
+            # Fallback to basic semantic search
+            memories = qdrant_client.search_memories_by_text(
+                query=request.query,
+                user_id=request.user_id,
+                limit=request.limit
+            )
+            return {
+                "results": memories,
+                "count": len(memories),
+                "modes_used": ["semantic"],
+                "early_termination": False,
+                "threshold_filtered": 0,
+                "fallback_used": True
+            }
+        
+        # Create a modified version of hybrid search that respects test parameters
+        # We'll temporarily modify the hybrid search service behavior
+        
+        # Store original values
+        original_threshold = getattr(hybrid_search_service, '_min_similarity_threshold', 0.5)
+        original_text_limit = 200
+        original_early_termination = True
+        original_min_word_length = 3
+        
+        # Apply test configuration
+        hybrid_search_service._min_similarity_threshold = request.similarity_threshold
+        hybrid_search_service._text_search_limit = request.text_search_limit
+        hybrid_search_service._enable_early_termination = request.enable_early_termination
+        hybrid_search_service._min_word_length = request.min_word_length
+        
+        try:
+            # Create a modified request
+            search_request = HybridSearchRequest(
+                query=request.query,
+                user_id=request.user_id,
+                search_mode=request.search_mode,
+                agent_id=request.agent_id,
+                run_id=request.run_id,
+                limit=request.limit,
+                filters=request.filters
+            )
+            
+            memories = hybrid_search_service.search(search_request)
+            
+            # Count how many were filtered by threshold
+            total_before_threshold = len([m for m in memories if hasattr(m, 'score')])
+            filtered_memories = [m for m in memories if not hasattr(m, 'score') or m.score >= request.similarity_threshold]
+            threshold_filtered = max(0, total_before_threshold - len(filtered_memories))
+            
+            return {
+                "results": filtered_memories[:request.limit],
+                "count": len(filtered_memories[:request.limit]),
+                "total_count": len(filtered_memories),
+                "modes_used": [request.search_mode.mode],
+                "early_termination": getattr(hybrid_search_service, '_used_early_termination', False),
+                "threshold_filtered": threshold_filtered,
+                "fallback_used": False,
+                "test_parameters": {
+                    "similarity_threshold": request.similarity_threshold,
+                    "text_search_limit": request.text_search_limit,
+                    "enable_early_termination": request.enable_early_termination,
+                    "min_word_length": request.min_word_length
+                }
+            }
+            
+        finally:
+            # Restore original values
+            hybrid_search_service._min_similarity_threshold = original_threshold
+            hybrid_search_service._text_search_limit = original_text_limit
+            hybrid_search_service._enable_early_termination = original_early_termination
+            hybrid_search_service._min_word_length = original_min_word_length
+        
+    except Exception as e:
+        logger.error(f"Error in test search: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # Memory Analytics Endpoints

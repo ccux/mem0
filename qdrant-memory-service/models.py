@@ -118,6 +118,19 @@ class HybridSearchRequest(BaseModel):
     filters: Optional[Dict[str, Any]] = None
     include_graph: Optional[bool] = False
 
+class TestSearchRequest(BaseModel):
+    query: str
+    user_id: str
+    search_mode: SearchMode = SearchMode()
+    agent_id: Optional[str] = None
+    run_id: Optional[str] = None
+    limit: Optional[int] = 25
+    similarity_threshold: Optional[float] = 0.5
+    text_search_limit: Optional[int] = 200
+    enable_early_termination: Optional[bool] = True
+    min_word_length: Optional[int] = 3
+    filters: Optional[Dict[str, Any]] = None
+
 # Memory Analytics Models
 class MemoryCluster(BaseModel):
     cluster_id: int

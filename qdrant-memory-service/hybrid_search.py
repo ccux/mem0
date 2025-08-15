@@ -89,35 +89,53 @@ class HybridSearchService:
     def _text_search(self, request: HybridSearchRequest) -> List[MemoryResponse]:
         """Perform text-based search using keyword matching"""
         try:
-            # Get user memories for text search (reduced limit for performance)
+            # For text search, we need to get ALL user memories to properly search through them
+            # Use a very high limit to effectively get all memories (Qdrant max is usually 10000)
+            text_search_limit = getattr(self, '_text_search_limit', 10000)  # Get ALL memories for text search
+            
+            # Get ALL user memories for text search - this is critical for text search to work
             all_memories = self.qdrant_client.get_memories(
                 user_id=request.user_id,
-                limit=200  # Reduced from 1000 for performance
+                limit=text_search_limit  # Use high limit to get all memories
             )
 
+            logger.info(f"Text search: Retrieved {len(all_memories)} memories for user {request.user_id}")
+
             if not all_memories:
+                logger.warning(f"Text search: No memories found for user {request.user_id}")
                 return []
 
             # Perform text matching
             query_terms = self._extract_search_terms(request.query)
+            logger.info(f"Text search: Extracted search terms: {query_terms}")
             scored_memories = []
 
+            matches_found = 0
             for memory in all_memories:
                 memory_text = memory.memory.lower()
                 score = self._calculate_text_score(memory_text, query_terms)
 
                 if score > 0.3:  # Only include reasonably good text matches
+                    matches_found += 1
                     # Set text-based score
                     memory.score = score
                     scored_memories.append(memory)
+                    
+                    # Log first few matches for debugging
+                    if matches_found <= 3:
+                        logger.info(f"Text search match {matches_found}: score={score:.3f}, text='{memory.memory[:100]}...'")
 
                     # Early termination if we have enough good matches
                     if len(scored_memories) >= request.limit * 2:
+                        logger.info(f"Text search: Early termination after finding {len(scored_memories)} matches")
                         break
 
             # Sort by text score and limit
             scored_memories.sort(key=lambda x: x.score, reverse=True)
-            return scored_memories[:request.limit]
+            final_results = scored_memories[:request.limit]
+            
+            logger.info(f"Text search: Found {matches_found} total matches, returning top {len(final_results)} results")
+            return final_results
 
         except Exception as e:
             logger.error(f"Error in text search: {e}")
@@ -204,76 +222,78 @@ class HybridSearchService:
             if total_weight > 0:
                 weights = {k: v / total_weight for k, v in weights.items()}
 
-            # Start with semantic search (fastest and most reliable)
+            logger.info(f"Hybrid search starting with weights: {weights}")
+
             search_results = {}
 
+            # ALWAYS run semantic search if weight > 0
             if weights.get('semantic', 0) > 0:
+                logger.info("Running semantic search...")
                 semantic_request = HybridSearchRequest(
                     query=request.query,
                     user_id=request.user_id,
                     search_mode=SearchMode(mode='semantic'),
-                    limit=request.limit
+                    limit=request.limit  # Use full limit
                 )
                 search_results['semantic'] = self._semantic_search(semantic_request)
+                logger.info(f"Semantic search returned {len(search_results['semantic'])} results")
 
-                # Early termination: if we have good semantic results, skip slower searches
-                if search_results['semantic']:
-                    best_semantic_score = max((r.score or 0) for r in search_results['semantic'])
-                    if best_semantic_score > 0.7:  # If we have very good semantic matches
-                        logger.info(f"Hybrid search: Early termination with high-quality semantic results (best score: {best_semantic_score})")
-                        return search_results['semantic'][:request.limit]
-
-            # Only do text search if semantic didn't give good results
-            if weights.get('text', 0) > 0 and (not search_results.get('semantic') or len(search_results['semantic']) < request.limit // 2):
+            # ALWAYS run text search if weight > 0
+            if weights.get('text', 0) > 0:
+                logger.info("Running text search...")
                 text_request = HybridSearchRequest(
                     query=request.query,
                     user_id=request.user_id,
                     search_mode=SearchMode(mode='text'),
-                    limit=request.limit // 2  # Reduced limit for performance
+                    limit=request.limit  # Use full limit
                 )
                 search_results['text'] = self._text_search(text_request)
+                logger.info(f"Text search returned {len(search_results['text'])} results")
 
-            # Only do graph search if we have few results and graph is available
-            if (weights.get('graph', 0) > 0 and
-                self.graph_client.connected and
-                sum(len(results) for results in search_results.values()) < request.limit):
-
+            # ALWAYS run graph search if weight > 0 and graph is available
+            if weights.get('graph', 0) > 0 and self.graph_client.connected:
+                logger.info("Running graph search...")
                 try:
                     graph_request = HybridSearchRequest(
                         query=request.query,
                         user_id=request.user_id,
                         search_mode=SearchMode(mode='graph'),
-                        limit=request.limit // 3  # Very small limit for graph search
+                        limit=request.limit  # Use full limit
                     )
                     search_results['graph'] = self._graph_search(graph_request)
+                    logger.info(f"Graph search returned {len(search_results['graph'])} results")
                 except Exception as e:
                     logger.warning(f"Graph search failed, continuing without it: {e}")
                     weights['graph'] = 0
 
-            # Combine and rank results
+            # Combine ALL results with proper weighting
             combined_results = self._combine_search_results(search_results, weights)
 
-            # Debug: print all scores before filtering
-            logger.info(f"Hybrid search: all scores before threshold: {[float(getattr(r, 'score', 0) or 0) for r in combined_results]}")
+            logger.info(f"Combined search results: {len(combined_results)} total memories")
 
             # Apply minimum similarity threshold to filter out low-quality results
-            MIN_SIMILARITY_THRESHOLD = 0.5  # 50% threshold for meaningful matches
+            MIN_SIMILARITY_THRESHOLD = getattr(self, '_min_similarity_threshold', 0.3)
             filtered_results = [
                 result for result in combined_results
                 if getattr(result, 'score', None) is not None and float(result.score) >= MIN_SIMILARITY_THRESHOLD
             ]
 
-            logger.info(f"Hybrid search: {len(combined_results)} total results, {len(filtered_results)} above threshold ({MIN_SIMILARITY_THRESHOLD})")
+            logger.info(f"After threshold filtering ({MIN_SIMILARITY_THRESHOLD}): {len(filtered_results)} results")
 
             # If no results pass the threshold, return top N with a low_confidence flag
-            if not filtered_results:
-                logger.warning(f"Hybrid search: No results above threshold {MIN_SIMILARITY_THRESHOLD}, returning top {request.limit} low-confidence results.")
-                # Optionally, you could add a 'low_confidence' flag to the result objects
-                for r in combined_results[:request.limit]:
-                    setattr(r, 'low_confidence', True)
-                return combined_results[:request.limit]
+            if not filtered_results and combined_results:
+                logger.info("No results above threshold, returning top results with low confidence")
+                filtered_results = combined_results[:request.limit]
+                for result in filtered_results:
+                    result.low_confidence = True
 
-            return filtered_results[:request.limit]
+            # Sort by final score and limit
+            final_results = sorted(filtered_results, key=lambda x: x.score or 0, reverse=True)
+            limited_results = final_results[:request.limit]
+
+            logger.info(f"Hybrid search returning {len(limited_results)} final results")
+
+            return limited_results
 
         except Exception as e:
             logger.error(f"Error in hybrid search: {e}")
@@ -336,8 +356,11 @@ class HybridSearchService:
         # Remove punctuation and convert to lowercase
         clean_query = re.sub(r'[^\w\s]', ' ', query.lower())
 
+        # Get minimum word length from service configuration or use default
+        min_word_length = getattr(self, '_min_word_length', 3)  # Default to 3
+
         # Split into terms and filter out short words
-        terms = [term.strip() for term in clean_query.split() if len(term.strip()) > 2]
+        terms = [term.strip() for term in clean_query.split() if len(term.strip()) >= min_word_length]
 
         return terms
 
