@@ -565,9 +565,8 @@ async def update_memory(memory_id: str, request: MemoryUpdate, user_id: Optional
         success = qdrant_client.update_memory(
             memory_id=memory_id,
             user_id=effective_user_id,
-            new_memory=request.data,
-            new_vector=embedding,
-            metadata={"category": category}
+            memory=request.data,
+            vector=embedding
         )
 
         if success:
