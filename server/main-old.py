@@ -23,7 +23,7 @@ except ImportError as e:
     MEM0_AVAILABLE = False
 
 # LLM Configuration for categorization
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY") or os.getenv("GOOGLE_GENERATIVE_AI_API_KEY")
+GOOGLE_API_KEY = os.getenv("GOOGLE_GENERATIVE_AI_API_KEY")
 if GOOGLE_API_KEY:
     genai.configure(api_key=GOOGLE_API_KEY)
     logger.info("Google Gemini API configured for categorization")

@@ -13,9 +13,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Use the Doppler-provided key for Gemini
-api_key = os.getenv("GOOGLE_GENERATIVE_AI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+api_key = os.getenv("GOOGLE_GENERATIVE_AI_API_KEY")
 if not api_key:
-    print("GOOGLE_GENERATIVE_AI_API_KEY or GOOGLE_API_KEY not found in environment variables.")
+    print("GOOGLE_GENERATIVE_AI_API_KEY not found in environment variables.")
     # Decide if you want to exit or try to continue without it,
     # though mem0 will likely fail later if LLM/Embedder is needed.
     # exit(1) # Uncomment to exit if key is critical for startup

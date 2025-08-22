@@ -16,7 +16,9 @@ from prompts import (
 )
 
 # Environment variables
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
+GOOGLE_GENERATIVE_AI_API_KEY = os.getenv("GOOGLE_GENERATIVE_AI_API_KEY", "")
+# Legacy variable name for backward compatibility
+GOOGLE_API_KEY = GOOGLE_GENERATIVE_AI_API_KEY
 GEMINI_EMBEDDING_MODEL = os.getenv("GEMINI_EMBEDDING_MODEL", "models/embedding-001")
 GEMINI_LLM_MODEL = os.getenv("GEMINI_LLM_MODEL", "gemini-2.5-flash-lite")
 VECTOR_DIMENSION = int(os.getenv("VECTOR_DIMENSION", "1536"))  # Changed default from 768 to 1536

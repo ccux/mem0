@@ -18,7 +18,7 @@ class GeminiLLM(LLMBase):
         if not self.config.model:
             self.config.model = "gemini-2.0-flash"
 
-        api_key = self.config.api_key or os.getenv("GOOGLE_API_KEY")
+        api_key = self.config.api_key or os.getenv("GOOGLE_GENERATIVE_AI_API_KEY")
 
         # Configure the API key
         genai.configure(api_key=api_key)

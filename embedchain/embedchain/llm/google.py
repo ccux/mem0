@@ -19,10 +19,10 @@ logger = logging.getLogger(__name__)
 class GoogleLlm(BaseLlm):
     def __init__(self, config: Optional[BaseLlmConfig] = None):
         super().__init__(config)
-        if not self.config.api_key and "GOOGLE_API_KEY" not in os.environ:
-            raise ValueError("Please set the GOOGLE_API_KEY environment variable or pass it in the config.")
+        if not self.config.api_key and "GOOGLE_GENERATIVE_AI_API_KEY" not in os.environ:
+            raise ValueError("Please set the GOOGLE_GENERATIVE_AI_API_KEY environment variable or pass it in the config.")
 
-        api_key = self.config.api_key or os.getenv("GOOGLE_API_KEY")
+        api_key = self.config.api_key or os.getenv("GOOGLE_GENERATIVE_AI_API_KEY")
         genai.configure(api_key=api_key)
 
     def get_llm_model_answer(self, prompt):
