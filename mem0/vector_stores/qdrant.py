@@ -286,19 +286,36 @@ class Qdrant(VectorStoreBase):
         """Efficient memory counting with optional filters"""
         try:
             query_filter = self._create_filter(filters) if filters else None
-            result = self.client.scroll(
+            
+            # Use the proper Qdrant count API endpoint
+            count_result = self.client.count(
                 collection_name=self.collection_name,
-                scroll_filter=query_filter,
-                limit=0,  # We only want the count
-                with_payload=False,
-                with_vectors=False,
+                count_filter=query_filter,
+                exact=True  # Use exact count for billing accuracy
             )
-            # The result tuple contains (points, next_page_token)
-            # For count, we can use the collection info
-            collection_info = self.client.get_collection(self.collection_name)
-            return collection_info.points_count
+            
+            logger.debug(f"Qdrant count_memories with filters {filters}: {count_result.count}")
+            return count_result.count
+            
+        except AttributeError as e:
+            # Fallback for older Qdrant client versions that don't have count method
+            logger.warning(f"Qdrant client doesn't have count method, using scroll fallback: {e}")
+            try:
+                points, _ = self.client.scroll(
+                    collection_name=self.collection_name,
+                    scroll_filter=query_filter,
+                    limit=10000,  # Get actual points to count them
+                    with_payload=False,
+                    with_vectors=False,
+                )
+                actual_count = len(points) if points else 0
+                logger.debug(f"Scroll fallback count with filters {filters}: {actual_count}")
+                return actual_count
+            except Exception as scroll_e:
+                logger.error(f"Scroll fallback also failed: {scroll_e}")
+                return 0
         except Exception as e:
-            logger.error(f"Error counting memories: {e}")
+            logger.error(f"Error counting memories with filter: {e}")
             return 0
 
     def list_with_sorting(

@@ -111,5 +111,135 @@ class TestQdrant(unittest.TestCase):
         self.qdrant.col_info()
         self.client_mock.get_collection.assert_called_once_with(collection_name="test_collection")
 
+    def test_count_memories_no_filter(self):
+        """Test count_memories without filters returns total count"""
+        from unittest.mock import MagicMock
+        
+        # Mock the count method to return a count result
+        count_result = MagicMock()
+        count_result.count = 42
+        self.client_mock.count.return_value = count_result
+        
+        result = self.qdrant.count_memories()
+        
+        # Should call count with no filter
+        self.client_mock.count.assert_called_once_with(
+            collection_name="test_collection",
+            count_filter=None,
+            exact=True
+        )
+        self.assertEqual(result, 42)
+
+    def test_count_memories_with_user_filter(self):
+        """Test count_memories with user_id filter"""
+        from unittest.mock import MagicMock
+        
+        count_result = MagicMock()
+        count_result.count = 15
+        self.client_mock.count.return_value = count_result
+        
+        # Test with user_id filter
+        filters = {"user_id": "test_user_123"}
+        result = self.qdrant.count_memories(filters)
+        
+        # Should call count with proper filter
+        self.client_mock.count.assert_called_once()
+        call_args = self.client_mock.count.call_args
+        
+        self.assertEqual(call_args[1]["collection_name"], "test_collection")
+        self.assertEqual(call_args[1]["exact"], True)
+        self.assertIsNotNone(call_args[1]["count_filter"])
+        self.assertEqual(result, 15)
+
+    def test_count_memories_with_multiple_filters(self):
+        """Test count_memories with multiple filters"""
+        from unittest.mock import MagicMock
+        
+        count_result = MagicMock()
+        count_result.count = 5
+        self.client_mock.count.return_value = count_result
+        
+        # Test with multiple filters
+        filters = {
+            "user_id": "test_user_123",
+            "source": "chat",
+            "created_at": {"gte": "2024-01-01", "lte": "2024-12-31"}
+        }
+        result = self.qdrant.count_memories(filters)
+        
+        # Should call count with combined filter
+        self.client_mock.count.assert_called_once()
+        self.assertEqual(result, 5)
+
+    def test_count_memories_fallback_on_attribute_error(self):
+        """Test count_memories falls back to scroll when count method is not available"""
+        from unittest.mock import MagicMock
+        
+        # Mock count method to raise AttributeError (older client version)
+        self.client_mock.count.side_effect = AttributeError("count method not available")
+        
+        # Mock scroll to return points for counting
+        mock_points = [MagicMock() for _ in range(8)]  # 8 mock points
+        self.client_mock.scroll.return_value = (mock_points, None)
+        
+        filters = {"user_id": "test_user_123"}
+        result = self.qdrant.count_memories(filters)
+        
+        # Should fall back to scroll and count the points
+        self.client_mock.scroll.assert_called_once_with(
+            collection_name="test_collection",
+            scroll_filter=unittest.mock.ANY,  # Filter object
+            limit=10000,
+            with_payload=False,
+            with_vectors=False,
+        )
+        self.assertEqual(result, 8)
+
+    def test_count_memories_handles_general_exception(self):
+        """Test count_memories handles general exceptions gracefully"""
+        # Mock count to raise a general exception
+        self.client_mock.count.side_effect = Exception("Connection error")
+        
+        result = self.qdrant.count_memories()
+        
+        # Should return 0 on error
+        self.assertEqual(result, 0)
+
+    def test_count_memories_empty_result(self):
+        """Test count_memories handles empty results correctly"""
+        from unittest.mock import MagicMock
+        
+        count_result = MagicMock()
+        count_result.count = 0
+        self.client_mock.count.return_value = count_result
+        
+        result = self.qdrant.count_memories({"user_id": "nonexistent_user"})
+        
+        self.assertEqual(result, 0)
+
+    def test_count_memories_scroll_fallback_empty_points(self):
+        """Test scroll fallback handles empty points correctly"""
+        # Mock count method to raise AttributeError
+        self.client_mock.count.side_effect = AttributeError("count method not available")
+        
+        # Mock scroll to return empty points list
+        self.client_mock.scroll.return_value = ([], None)
+        
+        result = self.qdrant.count_memories({"user_id": "test_user"})
+        
+        self.assertEqual(result, 0)
+
+    def test_count_memories_scroll_fallback_exception(self):
+        """Test scroll fallback handles exceptions gracefully"""
+        # Mock count method to raise AttributeError
+        self.client_mock.count.side_effect = AttributeError("count method not available")
+        
+        # Mock scroll to also raise an exception
+        self.client_mock.scroll.side_effect = Exception("Scroll error")
+        
+        result = self.qdrant.count_memories({"user_id": "test_user"})
+        
+        self.assertEqual(result, 0)
+
     def tearDown(self):
         del self.qdrant

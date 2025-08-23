@@ -222,6 +222,58 @@ class ChromaDB(VectorStoreBase):
         results = self.collection.get(where=filters, limit=limit)
         return [self._parse_output(results)]
     
+    def count_memories(self, filters: Optional[Dict] = None) -> int:
+        """Efficient memory counting with optional filters"""
+        try:
+            # Chroma uses 'where' parameter for filtering in count operations
+            result = self.collection.count(where=filters)
+            logger.debug(f"ChromaDB count_memories with filters {filters}: {result}")
+            return result
+        except Exception as e:
+            logger.error(f"Error counting memories in ChromaDB: {e}")
+            # Fallback to get and count
+            try:
+                results = self.collection.get(where=filters, limit=1000000)  # Large limit for count
+                count = len(results['ids']) if results and 'ids' in results else 0
+                logger.debug(f"ChromaDB fallback count with filters {filters}: {count}")
+                return count
+            except Exception as fallback_e:
+                logger.error(f"ChromaDB fallback count also failed: {fallback_e}")
+                return 0
+
+    def list_with_sorting(
+        self,
+        filters: Optional[Dict] = None,
+        sort_by: Optional[List] = None,
+        limit: int = 100,
+        offset: int = 0
+    ) -> List:
+        """List with sorting - simplified implementation for ChromaDB"""
+        try:
+            # ChromaDB doesn't have native sorting, use basic get with filters
+            results = self.collection.get(
+                where=filters,
+                limit=limit,
+                offset=offset
+            )
+            return self._parse_output(results) if results else []
+        except Exception as e:
+            logger.error(f"Error in list_with_sorting: {e}")
+            return []
+
+    def aggregate_stats(self, user_id: str) -> Dict:
+        """Get aggregate statistics for a user"""
+        try:
+            user_filter = {"user_id": user_id}
+            count = self.count_memories(user_filter)
+            return {
+                'total_memories': count,
+                'method': 'chromadb_count'
+            }
+        except Exception as e:
+            logger.error(f"Error getting aggregate stats: {e}")
+            return {'total_memories': 0, 'method': 'error'}
+
     def reset(self):
         """Reset the index by deleting and recreating it."""
         logger.warning(f"Resetting index {self.collection_name}...")

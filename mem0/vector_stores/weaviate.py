@@ -309,6 +309,116 @@ class Weaviate(VectorStoreBase):
             results.append(OutputData(id=str(obj.uuid).split("'")[0], score=1.0, payload=payload))
         return [results]
     
+    def count_memories(self, filters: Optional[Dict] = None) -> int:
+        """Efficient memory counting with optional filters"""
+        try:
+            collection = self.client.collections.get(self.collection_name)
+            
+            # Build Weaviate filters
+            filter_conditions = []
+            if filters:
+                for key, value in filters.items():
+                    if value and key in ["user_id", "agent_id", "run_id"]:
+                        filter_conditions.append(Filter.by_property(key).equal(value))
+                    elif value and isinstance(value, dict) and "gte" in value and "lte" in value:
+                        # Range filters
+                        filter_conditions.append(
+                            Filter.by_property(key).greater_or_equal(value["gte"]) &
+                            Filter.by_property(key).less_or_equal(value["lte"])
+                        )
+                    elif value:
+                        filter_conditions.append(Filter.by_property(key).equal(value))
+            
+            combined_filter = Filter.all_of(filter_conditions) if filter_conditions else None
+            
+            # Use Weaviate's aggregate query to get count
+            response = collection.aggregate.over_all(
+                where=combined_filter
+            )
+            
+            count = response.total_count if hasattr(response, 'total_count') else 0
+            logger.debug(f"Weaviate count_memories with filters {filters}: {count}")
+            return count
+            
+        except Exception as e:
+            logger.error(f"Error counting memories in Weaviate: {e}")
+            # Fallback to fetch and count
+            try:
+                collection = self.client.collections.get(self.collection_name)
+                filter_conditions = []
+                if filters:
+                    for key, value in filters.items():
+                        if value and key in ["user_id", "agent_id", "run_id"]:
+                            filter_conditions.append(Filter.by_property(key).equal(value))
+                
+                combined_filter = Filter.all_of(filter_conditions) if filter_conditions else None
+                response = collection.query.fetch_objects(
+                    limit=1000000,  # Large limit for counting
+                    where=combined_filter,
+                    return_properties=["user_id"]  # Minimal properties
+                )
+                
+                count = len(response.objects) if response and response.objects else 0
+                logger.debug(f"Weaviate fallback count with filters {filters}: {count}")
+                return count
+                
+            except Exception as fallback_e:
+                logger.error(f"Weaviate fallback count also failed: {fallback_e}")
+                return 0
+
+    def list_with_sorting(
+        self,
+        filters: Optional[Dict] = None,
+        sort_by: Optional[List] = None,
+        limit: int = 100,
+        offset: int = 0
+    ) -> List:
+        """List with sorting - simplified implementation for Weaviate"""
+        try:
+            collection = self.client.collections.get(self.collection_name)
+            
+            # Build filters
+            filter_conditions = []
+            if filters:
+                for key, value in filters.items():
+                    if value and key in ["user_id", "agent_id", "run_id"]:
+                        filter_conditions.append(Filter.by_property(key).equal(value))
+            
+            combined_filter = Filter.all_of(filter_conditions) if filter_conditions else None
+            
+            # Weaviate has limited sorting support, use basic fetch
+            response = collection.query.fetch_objects(
+                limit=limit,
+                offset=offset,
+                where=combined_filter,
+                return_properties=["hash", "created_at", "updated_at", "user_id", "agent_id", "run_id", "data", "category"]
+            )
+            
+            results = []
+            for obj in response.objects:
+                payload = obj.properties.copy()
+                payload["id"] = str(obj.uuid).split("'")[0]
+                results.append(OutputData(id=str(obj.uuid).split("'")[0], score=1.0, payload=payload))
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"Error in list_with_sorting: {e}")
+            return []
+
+    def aggregate_stats(self, user_id: str) -> Dict:
+        """Get aggregate statistics for a user"""
+        try:
+            user_filter = {"user_id": user_id}
+            count = self.count_memories(user_filter)
+            return {
+                'total_memories': count,
+                'method': 'weaviate_aggregate'
+            }
+        except Exception as e:
+            logger.error(f"Error getting aggregate stats: {e}")
+            return {'total_memories': 0, 'method': 'error'}
+
     def reset(self):
         """Reset the index by deleting and recreating it."""
         logger.warning(f"Resetting index {self.collection_name}...")
