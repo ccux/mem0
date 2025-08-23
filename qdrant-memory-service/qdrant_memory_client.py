@@ -580,3 +580,56 @@ class QdrantMemoryClient:
         except Exception as e:
             logger.error(f"Error deleting all memories for user {user_id}: {e}")
             raise
+    
+    def count_memories(self, user_id: str, filters: Optional[Dict[str, Any]] = None) -> int:
+        """Count memories for a user efficiently using Qdrant's count API."""
+        try:
+            # Build filter conditions
+            must_conditions = [
+                FieldCondition(
+                    key="user_id",
+                    match=MatchValue(value=user_id)
+                )
+            ]
+            
+            # Add additional filters if provided
+            if filters:
+                for key, value in filters.items():
+                    must_conditions.append(
+                        FieldCondition(
+                            key=key,
+                            match=MatchValue(value=value)
+                        )
+                    )
+            
+            # Use Qdrant's count API for efficient counting
+            count_result = self.client.count(
+                collection_name=self.collection_name,
+                count_filter=Filter(must=must_conditions),
+                exact=True  # Use exact count for billing accuracy
+            )
+            
+            logger.info(f"Memory count for user {user_id}: {count_result.count}")
+            return count_result.count
+            
+        except AttributeError as e:
+            # Fallback for older Qdrant client versions
+            logger.warning(f"Qdrant client doesn't have count method, using scroll fallback: {e}")
+            try:
+                points, _ = self.client.scroll(
+                    collection_name=self.collection_name,
+                    scroll_filter=Filter(must=must_conditions),
+                    limit=10000,
+                    with_payload=False,
+                    with_vectors=False
+                )
+                count = len(points) if points else 0
+                logger.info(f"Memory count for user {user_id} (via scroll): {count}")
+                return count
+            except Exception as scroll_e:
+                logger.error(f"Scroll fallback also failed: {scroll_e}")
+                return 0
+                
+        except Exception as e:
+            logger.error(f"Error counting memories for user {user_id}: {e}")
+            raise

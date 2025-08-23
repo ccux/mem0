@@ -489,6 +489,36 @@ async def get_memories(
         logger.error(f"Error getting memories: {e}")
         raise HTTPException(status_code=500, detail=f"Error getting memories: {str(e)}")
 
+@app.get("/memories/count")
+async def get_memory_count(
+    user_id: str,
+    agent_id: Optional[str] = None,
+    run_id: Optional[str] = None
+):
+    """Get the count of memories for a user efficiently."""
+    try:
+        logger.info(f"Getting memory count for user: {user_id}")
+        
+        # Build filters
+        filters = {}
+        if agent_id:
+            filters["agent_id"] = agent_id
+        if run_id:
+            filters["run_id"] = run_id
+        
+        # Get count from Qdrant using efficient count API
+        count = qdrant_client.count_memories(
+            user_id=user_id,
+            filters=filters if filters else None
+        )
+        
+        logger.info(f"Memory count for user {user_id}: {count}")
+        return {"count": count, "user_id": user_id}
+        
+    except Exception as e:
+        logger.error(f"Error getting memory count: {e}")
+        raise HTTPException(status_code=500, detail=f"Error getting memory count: {str(e)}")
+
 @app.get("/memories/{memory_id}", response_model=MemoryResponse)
 async def get_memory_by_id(memory_id: str):
     """Get a single memory by ID."""
